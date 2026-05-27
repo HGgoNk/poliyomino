@@ -1,15 +1,12 @@
 import PieceShape from "./PieceShape.jsx";
 
-function PiecePreview({ piece, disabled, selected, dragging, onClick, onPointerDown, onPointerMove, onPointerUp }) {
+function PiecePreview({ piece, disabled, selected, onMouseDown }) {
   return (
     <button
-      className={`piece-preview ${selected ? "selected" : ""} ${dragging ? "dragging" : ""}`}
+      className={`piece-preview ${selected ? "selected" : ""}`}
       disabled={disabled}
-      onClick={onClick}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      title="블록 선택"
+      onMouseDown={onMouseDown}
+      title="Select block"
       type="button"
     >
       <PieceShape piece={piece} />

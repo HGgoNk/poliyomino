@@ -1,5 +1,5 @@
 import { PIECES } from "../constants/gameData.js";
-import { createPieceInstance, randomPiece, randomPieceTemplate, shuffle } from "./pieceUtils.js";
+import { createPieceInstance, randomPiece, randomPieceTemplate } from "./pieceUtils.js";
 import { getPlacements, placePiece } from "./placement.js";
 
 const TRAY_SIZE = 3;
@@ -20,11 +20,9 @@ export function canCompleteTray(board, pieces) {
 }
 
 function findSolvableTray(board) {
-  const pieces = shuffle(PIECES);
-
-  for (const first of pieces) {
-    for (const second of pieces) {
-      for (const third of pieces) {
+  for (const first of PIECES) {
+    for (const second of PIECES) {
+      for (const third of PIECES) {
         const tray = [first, second, third];
         if (canCompleteTray(board, tray)) {
           return tray;

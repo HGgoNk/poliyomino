@@ -2,11 +2,7 @@ import PiecePreview from "./PiecePreview.jsx";
 
 function PieceTray({
   disabled,
-  dragState,
   onPieceSelect,
-  onPointerDown,
-  onPointerMove,
-  onPointerUp,
   selectedId,
   tray
 }) {
@@ -15,13 +11,9 @@ function PieceTray({
       {tray.map((piece, index) =>
         piece ? (
           <PiecePreview
-            dragging={dragState?.piece.uid === piece.uid}
             disabled={disabled}
             key={piece.uid}
-            onClick={() => onPieceSelect(piece)}
-            onPointerDown={(event) => onPointerDown(piece, event)}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
+            onMouseDown={(event) => onPieceSelect(piece, event)}
             piece={piece}
             selected={selectedId === piece.uid}
           />

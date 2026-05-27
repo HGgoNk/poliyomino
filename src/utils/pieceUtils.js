@@ -1,7 +1,11 @@
 import { PIECES } from "../constants/gameData.js";
 
 export function createPieceInstance(piece) {
-  return { ...piece, uid: crypto.randomUUID() };
+  return {
+    ...piece,
+    cells: piece.cells.map(([row, col]) => [row, col]),
+    uid: crypto.randomUUID()
+  };
 }
 
 export function randomPieceTemplate() {
@@ -20,13 +24,4 @@ export function pieceBounds(piece) {
     }),
     { rows: 0, cols: 0 }
   );
-}
-
-export function shuffle(items) {
-  const next = [...items];
-  for (let index = next.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
-    [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
-  }
-  return next;
 }

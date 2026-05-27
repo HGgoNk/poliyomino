@@ -32,5 +32,6 @@ export function placePiece(board, piece, row, col) {
   piece.cells.forEach(([dr, dc]) => {
     next[row + dr][col + dc] = piece.color;
   });
-  return clearLines(next);
+  const result = clearLines(next);
+  return { ...result, placedBoard: next };
 }
