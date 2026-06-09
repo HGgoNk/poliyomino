@@ -13,7 +13,7 @@ function PieceTray({
           <PiecePreview
             disabled={disabled}
             key={piece.uid}
-            onMouseDown={(event) => onPieceSelect(piece, event)}
+            onMouseDown={(event, anchorCell) => onPieceSelect(piece, event, anchorCell)}
             piece={piece}
             selected={selectedId === piece.uid}
           />

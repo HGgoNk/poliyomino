@@ -11,6 +11,7 @@ function Board({
   onCellEnter,
   onCellLeave,
   onReset,
+  previewClearingCells,
   previewCells,
   selectedPiece
 }) {
@@ -21,12 +22,13 @@ function Board({
           const key = `${rowIndex}-${colIndex}`;
           const isPreview = previewCells.has(key);
           const isClearing = clearingCells.has(key);
+          const isPreviewClearing = previewClearingCells.has(key);
           const previewClass = isPreview && selectedPiece ? colorClass[selectedPiece.color] : "";
 
           return (
             <button
               aria-label={`${rowIndex + 1} row ${colIndex + 1} column`}
-              className={`board-cell ${cell ? colorClass[cell] : previewClass} ${isPreview ? "preview" : ""} ${isClearing ? "clearing" : ""}`}
+              className={`board-cell ${cell ? colorClass[cell] : previewClass} ${isPreview ? "preview" : ""} ${isPreviewClearing ? "preview-clearing" : ""} ${isClearing ? "clearing" : ""}`}
               key={key}
               onClick={() => onCellClick(rowIndex, colIndex)}
               onMouseEnter={() => onCellEnter({ row: rowIndex, col: colIndex })}

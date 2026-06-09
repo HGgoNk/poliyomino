@@ -4,6 +4,7 @@ import { getPlacements, placePiece } from "./placement.js";
 
 const TRAY_SIZE = 3;
 const RANDOM_TRAY_ATTEMPTS = 300;
+const SIMULATION_COLOR = "cyan";
 
 export function canCompleteTray(board, pieces) {
   if (!pieces.length) return true;
@@ -13,7 +14,7 @@ export function canCompleteTray(board, pieces) {
     const placements = getPlacements(board, piece);
 
     return placements.some(({ row, col }) => {
-      const result = placePiece(board, piece, row, col);
+      const result = placePiece(board, { ...piece, color: piece.color || SIMULATION_COLOR }, row, col);
       return canCompleteTray(result.board, remainingPieces);
     });
   });

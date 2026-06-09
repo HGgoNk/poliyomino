@@ -18,7 +18,15 @@ function PieceShape({ piece, cellSize = 22, cellGap = 2, className = "" }) {
         const row = Math.floor(index / bounds.cols);
         const col = index % bounds.cols;
         const filled = piece.cells.some(([r, c]) => r === row && c === col);
-        return <span className={`mini-cell ${filled ? colorClass[piece.color] : ""}`} key={`${row}-${col}`} />;
+        return (
+          <span
+            className={`mini-cell ${filled ? colorClass[piece.color] : ""}`}
+            data-col={col}
+            data-filled={filled ? "true" : "false"}
+            data-row={row}
+            key={`${row}-${col}`}
+          />
+        );
       })}
     </span>
   );

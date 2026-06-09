@@ -1,8 +1,13 @@
-import { PIECES } from "../constants/gameData.js";
+import { PIECES, PIECE_COLORS } from "../constants/gameData.js";
+
+function randomPieceColor() {
+  return PIECE_COLORS[Math.floor(Math.random() * PIECE_COLORS.length)];
+}
 
 export function createPieceInstance(piece) {
   return {
     ...piece,
+    color: piece.color || randomPieceColor(),
     cells: piece.cells.map(([row, col]) => [row, col]),
     uid: crypto.randomUUID()
   };
