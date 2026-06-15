@@ -1,22 +1,20 @@
 import { colorClass } from "../constants/gameData.js";
-import GameOver from "./GameOver.jsx";
+import "../styles/Board.css";
 
 function Board({
   board,
   boardRef,
   clearingCells,
-  gameOver,
   hoverCell,
   onCellClick,
   onCellEnter,
   onCellLeave,
-  onReset,
   previewClearingCells,
   previewCells,
   selectedPiece
 }) {
   return (
-    <div className={`board ${gameOver ? "is-over" : ""}`} ref={boardRef}>
+    <div className="board" ref={boardRef}>
       {board.map((row, rowIndex) =>
         row.map((cell, colIndex) => {
           const key = `${rowIndex}-${colIndex}`;
@@ -39,7 +37,6 @@ function Board({
           );
         })
       )}
-      {gameOver && <GameOver onReset={onReset} />}
     </div>
   );
 }

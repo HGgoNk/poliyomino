@@ -1,0 +1,138 @@
+import { useMemo, useState } from "react";
+import "../styles/RerollModal.css";
+import PieceShape from "./PieceShape.jsx";
+import { getRerollCount, getRerollReplacementMode } from "../features/augments.jsx";
+import { deckPieceInstances, rerollCandidates, rerollSlots } from "../utils/tray.js";
+
+const CANDIDATE_COUNT = 3;
+
+function RerollModal({ board, level, onApply, onCancel, tray }) {
+  const filledSlots = useMemo(
+    () => tray.reduce((slots, piece, index) => (piece ? [...slots, index] : slots), []),
+    [tray]
+  );
+  const count = Math.min(getRerollCount(level), filledSlots.length);
+  const mode = getRerollReplacementMode(level);
+
+  const [step, setStep] = useState("select");
+  // When the reroll covers every block there is nothing to choose, so pre-select all.
+  const [selectedSlots, setSelectedSlots] = useState(() => (count >= filledSlots.length ? filledSlots : []));
+  const [chooseIndex, setChooseIndex] = useState(0);
+  const [replacements, setReplacements] = useState({});
+  const [options, setOptions] = useState([]);
+
+  function toggleSlot(slotIndex) {
+    setSelectedSlots((current) => {
+      if (current.includes(slotIndex)) return current.filter((slot) => slot !== slotIndex);
+      if (current.length >= count) return current;
+      return [...current, slotIndex];
+    });
+  }
+
+  function nextOptions() {
+    return mode === "deck" ? deckPieceInstances() : rerollCandidates(CANDIDATE_COUNT);
+  }
+
+  function confirmSelection() {
+    if (selectedSlots.length !== count) return;
+
+    if (mode === "random") {
+      onApply(rerollSlots(board, tray, selectedSlots));
+      return;
+    }
+
+    setChooseIndex(0);
+    setReplacements({});
+    setOptions(nextOptions());
+    setStep("choose");
+  }
+
+  function pickReplacement(piece) {
+    const slotIndex = selectedSlots[chooseIndex];
+    const nextReplacements = { ...replacements, [slotIndex]: piece };
+    const nextIndex = chooseIndex + 1;
+
+    if (nextIndex >= selectedSlots.length) {
+      onApply(tray.map((piece, index) => (nextReplacements[index] ? nextReplacements[index] : piece)));
+      return;
+    }
+
+    setReplacements(nextReplacements);
+    setChooseIndex(nextIndex);
+    setOptions(nextOptions());
+  }
+
+  return (
+    <div className="reroll-backdrop" role="dialog" aria-modal="true" aria-labelledby="reroll-title">
+      <section className="reroll-panel">
+        <div className="reroll-heading">
+          <span>Reroll</span>
+          <strong id="reroll-title">{step === "select" ? "리롤할 블록 선택" : "새 블록 선택"}</strong>
+        </div>
+
+        {step === "select" ? (
+          <>
+            <p className="reroll-hint">
+              블록 {count}개 선택 ({selectedSlots.length}/{count})
+            </p>
+            <div className="reroll-row">
+              {filledSlots.map((slotIndex) => {
+                const piece = tray[slotIndex];
+                const isSelected = selectedSlots.includes(slotIndex);
+                return (
+                  <button
+                    aria-pressed={isSelected}
+                    className={`reroll-piece ${isSelected ? "selected" : ""}`}
+                    key={piece.uid}
+                    onClick={() => toggleSlot(slotIndex)}
+                    type="button"
+                  >
+                    <PieceShape piece={piece} />
+                  </button>
+                );
+              })}
+            </div>
+            <div className="reroll-actions">
+              <button className="reroll-cancel" onClick={onCancel} type="button">
+                취소
+              </button>
+              <button
+                className="reroll-confirm"
+                disabled={selectedSlots.length !== count}
+                onClick={confirmSelection}
+                type="button"
+              >
+                {mode === "random" ? "리롤" : "다음"}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="reroll-hint">
+              {chooseIndex + 1} / {selectedSlots.length} 번째 블록 — 원하는 블록을 고르세요
+            </p>
+            <div className={`reroll-options ${mode === "deck" ? "deck" : ""}`}>
+              {options.map((piece) => (
+                <button
+                  className="reroll-piece"
+                  key={piece.uid}
+                  onClick={() => pickReplacement(piece)}
+                  type="button"
+                >
+                  <PieceShape piece={piece} />
+                </button>
+              ))}
+            </div>
+            <div className="reroll-actions">
+              <button className="reroll-cancel" onClick={onCancel} type="button">
+                취소
+              </button>
+            </div>
+          </>
+        )}
+      </section>
+    </div>
+  );
+}
+
+export default RerollModal;

@@ -1,0 +1,114 @@
+.topbar {
+  align-items: center;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.icon-button {
+  align-items: center;
+  background: linear-gradient(180deg, var(--blue-100), var(--blue-300));
+  border: 0;
+  border-radius: 8px;
+  box-shadow: 0 10px 18px var(--blue-shadow);
+  color: var(--blue-950);
+  cursor: pointer;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.icon-button:hover {
+  filter: brightness(1.06);
+}
+
+.score-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.score-box {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  min-width: 148px;
+  padding: 0;
+}
+
+.score-box strong {
+  color: hsl(0 0% 100%);
+  display: block;
+  font-size: 3.7rem;
+  font-weight: 900;
+  line-height: 1.1;
+  min-width: 2ch;
+  text-align: center;
+  text-shadow: none;
+  transition: color 140ms ease, text-shadow 140ms ease, transform 140ms ease;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-box strong.is-counting {
+  animation: score-count-up 180ms ease-out;
+  color: hsl(0 0% 100%);
+  text-shadow: none;
+}
+
+@keyframes score-count-up {
+  0% {
+    transform: translateY(2px) scale(0.98);
+  }
+
+  60% {
+    transform: translateY(-2px) scale(1.04);
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+.best-score-badge {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--blue-100);
+  display: inline-flex;
+  gap: 8px;
+  left: max(24px, env(safe-area-inset-left));
+  padding: 0;
+  position: fixed;
+  top: max(24px, env(safe-area-inset-top));
+  z-index: 30;
+}
+
+.best-score-badge svg {
+  color: var(--blue-100);
+  filter: none;
+  height: 20px;
+  width: 20px;
+}
+
+.best-score-badge span {
+  font-size: 1.15rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.best-score-badge strong {
+  color: hsl(0 0% 100%);
+  font-size: 1.6rem;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: none;
+}
+
+@media (max-width: 460px) {
+  .topbar {
+    align-items: flex-start;
+  }
+}

@@ -1,0 +1,155 @@
+.augment-panel {
+  color: hsl(0 0% 100%);
+  grid-column: 1;
+  justify-self: end;
+  padding: 0;
+  width: max-content;
+}
+
+.augment-list {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(var(--augment-columns, 4), 144px);
+}
+
+.augment-item {
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  box-shadow: none;
+  display: block;
+  height: 198px;
+  padding: 0;
+  perspective: 900px;
+  position: relative;
+  width: 144px;
+}
+
+.augment-item.owned:hover,
+.augment-item.owned:focus-visible {
+  outline: none;
+}
+
+.augment-item.owned:hover .augment-flip-card,
+.augment-item.owned:focus-visible .augment-flip-card {
+  transform: rotateY(180deg);
+}
+
+.augment-item.empty {
+  background: hsl(204 78% 20% / 0.82);
+  border-radius: 10px;
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.1),
+    0 8px 14px hsl(204 88.1% 16.5% / 0.18);
+}
+
+.augment-flip-card {
+  border-radius: 10px;
+  display: block;
+  inset: 0;
+  position: absolute;
+  transform-style: preserve-3d;
+  transition: transform 360ms ease;
+}
+
+.augment-front,
+.augment-tooltip {
+  backface-visibility: hidden;
+  border-radius: 10px;
+  inset: 0;
+  position: absolute;
+}
+
+.augment-front {
+  align-items: center;
+  background: linear-gradient(180deg, var(--blue-500), var(--blue-600));
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.28),
+    0 8px 14px hsl(204 88.1% 16.5% / 0.24);
+  display: flex;
+  justify-content: center;
+}
+
+.augment-icon {
+  align-items: center;
+  background: linear-gradient(180deg, var(--blue-100), var(--blue-300));
+  border-radius: 10px;
+  color: var(--blue-950);
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  width: 100%;
+}
+
+.augment-icon svg {
+  height: 50%;
+  width: auto;
+}
+
+.augment-tooltip {
+  background: var(--blue-600);
+  border: 6px solid linear-gradient(180deg, var(--blue-100), var(--blue-300));
+  border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.18),
+    0 8px 14px hsl(204 88.1% 16.5% / 0.24);
+  color: hsl(0 0% 100%);
+  display: grid;
+  gap: 12px;
+  grid-template-rows: auto 1fr;
+  padding: 16px 14px 14px;
+  text-align: left;
+  transform: rotateY(180deg);
+}
+
+/* Level chip floats just above the top-right corner of the card. */
+.augment-tooltip-level {
+  backface-visibility: hidden;
+  color: hsl(48 92% 62%);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1;
+  position: absolute;
+  right: 4px;
+  top: -28px;
+}
+
+.augment-tooltip-name {
+  color: hsl(204 30% 100% / 0.78);
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.1;
+  padding-top: 6px;
+  text-align: center;
+  white-space: normal;
+  width: 100%;
+}
+
+.augment-tooltip-body {
+  align-items: center;
+  color: hsl(0, 0%, 100%);
+  display: flex;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+  min-height: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  padding: 0 6px;
+  text-align: left;
+  word-break: keep-all;
+}
+
+@media (max-width: 1520px) {
+  .augment-panel {
+    grid-column: auto;
+    justify-self: center;
+    order: -2;
+    width: 100%;
+  }
+
+  .augment-list {
+    grid-template-columns: repeat(3, 144px);
+    justify-content: center;
+  }
+}

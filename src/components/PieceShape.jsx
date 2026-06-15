@@ -1,7 +1,8 @@
 import { colorClass } from "../constants/gameData.js";
+import "../styles/PieceShape.css";
 import { pieceBounds } from "../utils/pieceUtils.js";
 
-function PieceShape({ piece, cellSize = 22, cellGap = 2, className = "" }) {
+function PieceShape({ piece, cellSize = 26, cellGap = 3, className = "" }) {
   const bounds = pieceBounds(piece);
 
   return (

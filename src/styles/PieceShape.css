@@ -1,0 +1,46 @@
+.mini-grid {
+  display: grid;
+  gap: var(--mini-cell-gap, 2px);
+  place-content: center;
+}
+
+.mini-cell {
+  border-radius: 2px;
+  height: var(--mini-cell-size, 22px);
+  width: var(--mini-cell-size, 22px);
+}
+
+.cursor-piece {
+  filter: drop-shadow(0 14px 18px hsl(204 88.1% 16.5% / 0.42));
+  left: 0;
+  opacity: 1;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  transform: translate(-50%, -50%);
+  z-index: 20;
+}
+
+.cursor-piece.invalid {
+  opacity: 0.8;
+}
+
+.cursor-piece-grid {
+  gap: var(--mini-cell-gap, 2px);
+}
+
+.cursor-piece-grid .mini-cell {
+  border-radius: 5px;
+}
+
+.piece-cyan { background: hsl(192 100% 43%); }
+.piece-lime { background: hsl(85 96% 41%); }
+.piece-amber { background: hsl(32 100% 49%); }
+.piece-rose { background: hsl(347 92% 55%); }
+.piece-violet { background: hsl(262 96% 63%); }
+.piece-blue { background: hsl(221 96% 59%); }
+.piece-teal { background: hsl(175 92% 35%); }
+.piece-orange { background: hsl(21 100% 54%); }
+.piece-pink { background: hsl(333 92% 56%); }
+.piece-green { background: hsl(142 92% 43%); }
+.piece-indigo { background: hsl(243 92% 64%); }

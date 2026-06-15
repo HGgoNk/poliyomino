@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import "../styles/ScoreBoard.css";
 import { Trophy } from "lucide-react";
 
 function ScoreBoard({ best, score }) {
@@ -22,8 +23,11 @@ function ScoreBoard({ best, score }) {
     }
 
     setIsCounting(true);
+    // Scale the increment so large score jumps finish in roughly the same time
+    // (~30 ticks) instead of crawling up one point at a time.
+    const step = Math.max(1, Math.ceil((score - currentScore) / 30));
     timerId = window.setInterval(() => {
-      currentScore += 1;
+      currentScore = Math.min(score, currentScore + step);
       displayedScoreRef.current = currentScore;
       setDisplayedScore(currentScore);
 
@@ -39,7 +43,7 @@ function ScoreBoard({ best, score }) {
   return (
     <>
       <div className="best-score-badge" aria-label="Best score">
-        <Trophy size={16} aria-hidden="true" />
+        <Trophy size={20} aria-hidden="true" />
         <span>Best</span>
         <strong>{best}</strong>
       </div>

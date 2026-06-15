@@ -1,4 +1,5 @@
 import PiecePreview from "./PiecePreview.jsx";
+import "../styles/PieceTray.css";
 
 function PieceTray({
   disabled,

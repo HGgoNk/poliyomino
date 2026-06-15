@@ -35,3 +35,50 @@ export function placePiece(board, piece, row, col) {
   const result = clearLines(next);
   return { ...result, placedBoard: next };
 }
+
+const ADJACENT_DELTAS = [
+  [-1, 0],
+  [1, 0],
+  [0, -1],
+  [0, 1]
+];
+
+// Empty cells orthogonally adjacent to the just-placed piece (board should include the piece).
+function findAdjacentEmptyCells(board, piece, row, col) {
+  const seen = new Set();
+  const cells = [];
+
+  piece.cells.forEach(([dr, dc]) => {
+    ADJACENT_DELTAS.forEach(([ddr, ddc]) => {
+      const nextRow = row + dr + ddr;
+      const nextCol = col + dc + ddc;
+      const key = `${nextRow}-${nextCol}`;
+      if (
+        nextRow >= 0 &&
+        nextRow < SIZE &&
+        nextCol >= 0 &&
+        nextCol < SIZE &&
+        !board[nextRow][nextCol] &&
+        !seen.has(key)
+      ) {
+        seen.add(key);
+        cells.push({ row: nextRow, col: nextCol });
+      }
+    });
+  });
+
+  return cells;
+}
+
+// Pick up to `count` random empty cells next to the placed piece (for the spread-fill augment).
+export function getSpreadFillCells(board, piece, row, col, count) {
+  if (count <= 0) return [];
+
+  const candidates = findAdjacentEmptyCells(board, piece, row, col);
+  for (let i = candidates.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+  }
+
+  return candidates.slice(0, count);
+}

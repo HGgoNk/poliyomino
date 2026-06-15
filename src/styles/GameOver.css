@@ -1,0 +1,64 @@
+.game-over {
+  align-items: center;
+  background:
+    linear-gradient(180deg, hsl(203 83.5% 26.1% / 0.94), hsl(204 88.1% 16.5% / 0.98));
+  backdrop-filter: blur(6px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  text-align: center;
+  z-index: 60;
+}
+
+.game-over h2 {
+  color: hsl(0 0% 100%);
+  font-size: clamp(3.4rem, 13vw, 7rem);
+  line-height: 0.92;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.game-over-score {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.game-over-score span,
+.game-over-best span {
+  color: var(--blue-100);
+  font-size: 0.86rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.game-over-score strong {
+  color: hsl(0 0% 100%);
+  font-size: clamp(3.8rem, 14vw, 6.4rem);
+  font-weight: 900;
+  line-height: 0.9;
+}
+
+.game-over-best {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.game-over-best strong {
+  color: hsl(0 0% 100%);
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.game-over-actions {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
