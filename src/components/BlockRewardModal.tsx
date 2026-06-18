@@ -1,11 +1,17 @@
 import "../styles/BlockRewardModal.css";
-import PieceShape from "./PieceShape.jsx";
-import { SPECIAL_LABELS } from "../features/specials.js";
+import PieceShape from "./PieceShape";
+import { SPECIAL_LABELS } from "../features/specials";
+import type { PieceInstance } from "../types";
 
-function BlockRewardModal({ piece, onConfirm }) {
+interface BlockRewardModalProps {
+  piece: PieceInstance | null;
+  onConfirm: () => void;
+}
+
+function BlockRewardModal({ piece, onConfirm }: BlockRewardModalProps) {
   if (!piece) return null;
 
-  const name = SPECIAL_LABELS[piece.special] || "새 블록";
+  const name = piece.special ? SPECIAL_LABELS[piece.special] : "새 블록";
 
   return (
     <div className="block-reward-backdrop" role="dialog" aria-modal="true" aria-labelledby="block-reward-title">

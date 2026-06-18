@@ -1,27 +1,39 @@
 import { useMemo, useState } from "react";
 import "../styles/RerollModal.css";
-import PieceShape from "./PieceShape.jsx";
-import { getRerollCount, getRerollReplacementMode } from "../features/augments.jsx";
-import { deckPieceInstances, rerollCandidates, rerollSlots } from "../utils/tray.js";
+import PieceShape from "./PieceShape";
+import { getRerollCount, getRerollReplacementMode } from "../features/augments";
+import { deckPieceInstances, rerollCandidates, rerollSlots } from "../utils/tray";
+import type { Board, PieceInstance, PieceTemplate, Tray } from "../types";
 
 const CANDIDATE_COUNT = 3;
 
-function RerollModal({ board, deckPieces, level, onApply, onCancel, tray }) {
-  const filledSlots = useMemo(
-    () => tray.reduce((slots, piece, index) => (piece ? [...slots, index] : slots), []),
+interface RerollModalProps {
+  board: Board;
+  deckPieces: PieceTemplate[];
+  level: number;
+  onApply: (tray: Tray) => void;
+  onCancel: () => void;
+  tray: Tray;
+}
+
+function RerollModal({ board, deckPieces, level, onApply, onCancel, tray }: RerollModalProps) {
+  const filledSlots = useMemo<number[]>(
+    () => tray.reduce<number[]>((slots, piece, index) => (piece ? [...slots, index] : slots), []),
     [tray]
   );
   const count = Math.min(getRerollCount(level), filledSlots.length);
   const mode = getRerollReplacementMode(level);
 
-  const [step, setStep] = useState("select");
+  const [step, setStep] = useState<"select" | "choose">("select");
   // When the reroll covers every block there is nothing to choose, so pre-select all.
-  const [selectedSlots, setSelectedSlots] = useState(() => (count >= filledSlots.length ? filledSlots : []));
-  const [chooseIndex, setChooseIndex] = useState(0);
-  const [replacements, setReplacements] = useState({});
-  const [options, setOptions] = useState([]);
+  const [selectedSlots, setSelectedSlots] = useState<number[]>(() =>
+    count >= filledSlots.length ? filledSlots : []
+  );
+  const [chooseIndex, setChooseIndex] = useState<number>(0);
+  const [replacements, setReplacements] = useState<Record<number, PieceInstance>>({});
+  const [options, setOptions] = useState<PieceInstance[]>([]);
 
-  function toggleSlot(slotIndex) {
+  function toggleSlot(slotIndex: number) {
     setSelectedSlots((current) => {
       if (current.includes(slotIndex)) return current.filter((slot) => slot !== slotIndex);
       if (current.length >= count) return current;
@@ -29,7 +41,7 @@ function RerollModal({ board, deckPieces, level, onApply, onCancel, tray }) {
     });
   }
 
-  function nextOptions() {
+  function nextOptions(): PieceInstance[] {
     return mode === "deck" ? deckPieceInstances(deckPieces) : rerollCandidates(CANDIDATE_COUNT, deckPieces);
   }
 
@@ -47,13 +59,13 @@ function RerollModal({ board, deckPieces, level, onApply, onCancel, tray }) {
     setStep("choose");
   }
 
-  function pickReplacement(piece) {
+  function pickReplacement(piece: PieceInstance) {
     const slotIndex = selectedSlots[chooseIndex];
     const nextReplacements = { ...replacements, [slotIndex]: piece };
     const nextIndex = chooseIndex + 1;
 
     if (nextIndex >= selectedSlots.length) {
-      onApply(tray.map((piece, index) => (nextReplacements[index] ? nextReplacements[index] : piece)));
+      onApply(tray.map((p, index) => (nextReplacements[index] ? nextReplacements[index] : p)) as Tray);
       return;
     }
 
@@ -83,11 +95,11 @@ function RerollModal({ board, deckPieces, level, onApply, onCancel, tray }) {
                   <button
                     aria-pressed={isSelected}
                     className={`reroll-piece ${isSelected ? "selected" : ""}`}
-                    key={piece.uid}
+                    key={piece!.uid}
                     onClick={() => toggleSlot(slotIndex)}
                     type="button"
                   >
-                    <PieceShape piece={piece} />
+                    <PieceShape piece={piece!} />
                   </button>
                 );
               })}

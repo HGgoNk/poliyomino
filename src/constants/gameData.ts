@@ -1,16 +1,18 @@
+import type { PieceTemplate } from "../types";
+
 export const SIZE = 8;
 
-export const EMPTY_BOARD = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
+export const EMPTY_BOARD: (string | null)[][] = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
 
-export const PIECES = [
+export const PIECES: PieceTemplate[] = [
   { id: "big-square", cells: [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]] },
   { id: "2x3", cells: [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2]] },
   { id: "3x2", cells: [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0], [2, 1]] },
   { id: "square", cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
-  { id: "V0", cells: [[0, 0], [1, 0], [2, 0], [2, 1], [2, 2]]},
-  { id: "V90", cells: [[0, 0], [0, 1], [0, 2], [1, 0], [2, 0]]},
-  { id: "V180", cells: [[0, 0], [0, 1], [0, 2], [1, 2], [2, 2]]},
-  { id: "V270", cells: [[0, 2], [1, 2], [2, 0], [2, 1], [2, 2]]},
+  { id: "V0", cells: [[0, 0], [1, 0], [2, 0], [2, 1], [2, 2]] },
+  { id: "V90", cells: [[0, 0], [0, 1], [0, 2], [1, 0], [2, 0]] },
+  { id: "V180", cells: [[0, 0], [0, 1], [0, 2], [1, 2], [2, 2]] },
+  { id: "V270", cells: [[0, 2], [1, 2], [2, 0], [2, 1], [2, 2]] },
   { id: "five-h", cells: [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]] },
   { id: "five-v", cells: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0]] },
   { id: "quad-h", cells: [[0, 0], [0, 1], [0, 2], [0, 3]] },
@@ -38,25 +40,29 @@ export const PIECES = [
 
 // The default deck contains every block defined above. A deck is just the list of
 // piece ids the player currently owns; only these blocks can appear in the tray.
-export const DEFAULT_DECK = PIECES.map((piece) => piece.id);
+export const DEFAULT_DECK: string[] = PIECES.map((piece) => piece.id);
 
-const PIECE_BY_ID = new Map(PIECES.map((piece) => [piece.id, piece]));
+const PIECE_BY_ID = new Map<string, PieceTemplate>(PIECES.map((piece) => [piece.id, piece]));
 
 // Resolve a deck (list of piece ids) into its matching piece templates, dropping any
 // unknown ids. Falls back to the full catalog when the deck is empty or invalid.
-export function getDeckPieces(deckIds) {
+export function getDeckPieces(deckIds: unknown): PieceTemplate[] {
   if (!Array.isArray(deckIds)) return PIECES;
-  const pieces = deckIds.map((id) => PIECE_BY_ID.get(id)).filter(Boolean);
+  const pieces = (deckIds as unknown[])
+    .map((id) => (typeof id === "string" ? PIECE_BY_ID.get(id) : undefined))
+    .filter((p): p is PieceTemplate => p !== undefined);
   return pieces.length ? pieces : PIECES;
 }
 
-export function isValidDeck(deckIds) {
-  return Array.isArray(deckIds) && deckIds.length > 0 && deckIds.every((id) => PIECE_BY_ID.has(id));
+export function isValidDeck(deckIds: unknown): deckIds is string[] {
+  return Array.isArray(deckIds) && deckIds.length > 0 && deckIds.every((id) => typeof id === "string" && PIECE_BY_ID.has(id));
 }
 
-export const PIECE_COLORS = ["cyan", "lime", "amber", "rose", "violet", "blue", "teal", "orange", "pink", "green", "indigo"];
+export const PIECE_COLORS: string[] = [
+  "cyan", "lime", "amber", "rose", "violet", "blue", "teal", "orange", "pink", "green", "indigo"
+];
 
-export const colorClass = {
+export const colorClass: Record<string, string> = {
   cyan: "piece-cyan",
   lime: "piece-lime",
   amber: "piece-amber",

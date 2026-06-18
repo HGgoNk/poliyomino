@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
-function useBestScore(score) {
-  const [best, setBest] = useState(() => Number(localStorage.getItem("block-blast-best") || 0));
+function useBestScore(score: number): number {
+  const [best, setBest] = useState<number>(() => Number(localStorage.getItem("block-blast-best") || 0));
 
   useEffect(() => {
     if (score > best) {

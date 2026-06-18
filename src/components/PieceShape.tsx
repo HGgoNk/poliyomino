@@ -1,10 +1,18 @@
-import { colorClass } from "../constants/gameData.js";
+import { colorClass } from "../constants/gameData";
 import "../styles/PieceShape.css";
-import { pieceBounds } from "../utils/pieceUtils.js";
+import { pieceBounds } from "../utils/pieceUtils";
+import type { PieceInstance } from "../types";
 
-function PieceShape({ piece, cellSize = 26, cellGap = 3, className = "" }) {
+interface PieceShapeProps {
+  piece: PieceInstance;
+  cellSize?: number;
+  cellGap?: number;
+  className?: string;
+}
+
+function PieceShape({ piece, cellSize = 26, cellGap = 3, className = "" }: PieceShapeProps) {
   const bounds = pieceBounds(piece);
-  const filledColorClass = colorClass[piece.color] || colorClass.cyan;
+  const filledColorClass = colorClass[piece.color] || colorClass["cyan"];
 
   return (
     <span
@@ -14,7 +22,7 @@ function PieceShape({ piece, cellSize = 26, cellGap = 3, className = "" }) {
         gridTemplateRows: `repeat(${bounds.rows}, ${cellSize}px)`,
         "--mini-cell-gap": `${cellGap}px`,
         "--mini-cell-size": `${cellSize}px`
-      }}
+      } as React.CSSProperties}
     >
       {Array.from({ length: bounds.rows * bounds.cols }, (_, index) => {
         const row = Math.floor(index / bounds.cols);

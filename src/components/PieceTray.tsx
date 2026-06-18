@@ -1,5 +1,14 @@
-import PiecePreview from "./PiecePreview.jsx";
+import PiecePreview from "./PiecePreview";
 import "../styles/PieceTray.css";
+import type { PieceInstance, Tray, CellCoord } from "../types";
+
+interface PieceTrayProps {
+  disabled: boolean;
+  onEmptySlotClick: () => void;
+  onPieceSelect: (piece: PieceInstance, event: React.MouseEvent<HTMLButtonElement>, anchorCell: CellCoord) => void;
+  selectedId: string | null;
+  tray: Tray;
+}
 
 function PieceTray({
   disabled,
@@ -7,7 +16,7 @@ function PieceTray({
   onPieceSelect,
   selectedId,
   tray
-}) {
+}: PieceTrayProps) {
   return (
     <div className="tray" aria-label="사용 가능한 블록">
       {tray.map((piece, index) =>

@@ -1,7 +1,14 @@
 import { Home, RotateCcw } from "lucide-react";
 import "../styles/GameOver.css";
 
-function GameOver({ best, onGoHome, onRestart, score }) {
+interface GameOverProps {
+  best: number;
+  onGoHome: () => void;
+  onRestart: () => void;
+  score: number;
+}
+
+function GameOver({ best, onGoHome, onRestart, score }: GameOverProps) {
   return (
     <div className="game-over" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
       <div className="game-over-score" aria-label="Final score">

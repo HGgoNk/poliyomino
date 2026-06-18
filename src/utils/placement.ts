@@ -1,7 +1,8 @@
-import { SIZE } from "../constants/gameData.js";
-import { clearLines, cloneBoard } from "./boardUtils.js";
+import { SIZE } from "../constants/gameData";
+import { clearLines, cloneBoard } from "./boardUtils";
+import type { Board, PieceInstance, PieceTemplate, PlacementResult, PlacementPosition, CellCoord } from "../types";
 
-export function canPlace(board, piece, row, col) {
+export function canPlace(board: Board, piece: PieceTemplate, row: number, col: number): boolean {
   // Ghost blocks may overlap existing blocks; they only need to stay on the board.
   const allowOverlap = piece.special === "ghost";
   return piece.cells.every(([dr, dc]) => {
@@ -12,8 +13,8 @@ export function canPlace(board, piece, row, col) {
   });
 }
 
-export function getPlacements(board, piece) {
-  const placements = [];
+export function getPlacements(board: Board, piece: PieceTemplate): PlacementPosition[] {
+  const placements: PlacementPosition[] = [];
 
   for (let row = 0; row < SIZE; row += 1) {
     for (let col = 0; col < SIZE; col += 1) {
@@ -26,14 +27,14 @@ export function getPlacements(board, piece) {
   return placements;
 }
 
-export function hasMove(board, pieces) {
+export function hasMove(board: Board, pieces: PieceTemplate[]): boolean {
   return pieces.some((piece) => getPlacements(board, piece).length > 0);
 }
 
-export function placePiece(board, piece, row, col) {
+export function placePiece(board: Board, piece: PieceInstance, row: number, col: number): PlacementResult {
   const next = cloneBoard(board);
   // Cells that already held a block before this piece landed on them (ghost overlap).
-  const overlappedCells = [];
+  const overlappedCells: string[] = [];
   piece.cells.forEach(([dr, dc]) => {
     const nextRow = row + dr;
     const nextCol = col + dc;
@@ -44,7 +45,7 @@ export function placePiece(board, piece, row, col) {
   return { ...result, placedBoard: next, overlappedCells };
 }
 
-const ADJACENT_DELTAS = [
+const ADJACENT_DELTAS: CellCoord[] = [
   [-1, 0],
   [1, 0],
   [0, -1],
@@ -52,9 +53,14 @@ const ADJACENT_DELTAS = [
 ];
 
 // Empty cells orthogonally adjacent to the just-placed piece (board should include the piece).
-function findAdjacentEmptyCells(board, piece, row, col) {
-  const seen = new Set();
-  const cells = [];
+function findAdjacentEmptyCells(
+  board: Board,
+  piece: PieceTemplate,
+  row: number,
+  col: number
+): PlacementPosition[] {
+  const seen = new Set<string>();
+  const cells: PlacementPosition[] = [];
 
   piece.cells.forEach(([dr, dc]) => {
     ADJACENT_DELTAS.forEach(([ddr, ddc]) => {
@@ -78,8 +84,36 @@ function findAdjacentEmptyCells(board, piece, row, col) {
   return cells;
 }
 
+export function getPlacementDistanceSquared(
+  a: PlacementPosition | null,
+  b: PlacementPosition | null
+): number {
+  if (!a || !b) return Infinity;
+  return (a.row - b.row) ** 2 + (a.col - b.col) ** 2;
+}
+
+export function getClosestPlacement(
+  board: Board,
+  piece: PieceTemplate | null,
+  target: PlacementPosition | null
+): PlacementPosition | null {
+  if (!piece || !target) return null;
+  const placements = getPlacements(board, piece);
+  if (!placements.length) return null;
+  return placements.reduce((closest, p) =>
+    getPlacementDistanceSquared(p, target) < getPlacementDistanceSquared(closest, target) ? p : closest,
+    placements[0]
+  );
+}
+
 // Pick up to `count` random empty cells next to the placed piece (for the spread-fill augment).
-export function getSpreadFillCells(board, piece, row, col, count) {
+export function getSpreadFillCells(
+  board: Board,
+  piece: PieceTemplate,
+  row: number,
+  col: number,
+  count: number
+): PlacementPosition[] {
   if (count <= 0) return [];
 
   const candidates = findAdjacentEmptyCells(board, piece, row, col);

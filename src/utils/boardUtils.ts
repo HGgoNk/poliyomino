@@ -1,19 +1,22 @@
-import { SIZE } from "../constants/gameData.js";
+import { SIZE } from "../constants/gameData";
+import type { Board, ClearedResult } from "../types";
 
-export function cloneBoard(board) {
+export function cloneBoard(board: Board): Board {
   return board.map((row) => [...row]);
 }
 
-export function isBoardEmpty(board) {
+export function isBoardEmpty(board: Board): boolean {
   return board.every((row) => row.every((cell) => !cell));
 }
 
-export function clearLines(board) {
-  const fullRows = board.map((row, index) => (row.every(Boolean) ? index : null)).filter((row) => row !== null);
+export function clearLines(board: Board): ClearedResult {
+  const fullRows = board
+    .map((row, index) => (row.every(Boolean) ? index : null))
+    .filter((row): row is number => row !== null);
   const fullCols = Array.from({ length: SIZE }, (_, col) =>
     board.every((row) => row[col]) ? col : null
-  ).filter((col) => col !== null);
-  const clearedCells = new Set();
+  ).filter((col): col is number => col !== null);
+  const clearedCells = new Set<string>();
 
   if (!fullRows.length && !fullCols.length) {
     return { board, cleared: 0, clearedCells: [], clearedRows: [], clearedCols: [] };
@@ -43,9 +46,13 @@ export function clearLines(board) {
 }
 
 // Null out the given row/col indices entirely; returns the new board and the cells that held blocks.
-export function clearLineIndices(board, rows, cols) {
+export function clearLineIndices(
+  board: Board,
+  rows: number[],
+  cols: number[]
+): { board: Board; clearedCells: string[] } {
   const next = cloneBoard(board);
-  const clearedCells = [];
+  const clearedCells: string[] = [];
 
   rows.forEach((row) => {
     for (let col = 0; col < SIZE; col += 1) {
@@ -64,13 +71,17 @@ export function clearLineIndices(board, rows, cols) {
 }
 
 // Choose up to `count` lines adjacent to the already-cleared rows/cols (for the spread-clear augment).
-export function pickAdjacentLines(clearedRows, clearedCols, count) {
+export function pickAdjacentLines(
+  clearedRows: number[],
+  clearedCols: number[],
+  count: number
+): { rows: number[]; cols: number[] } {
   if (count <= 0) return { rows: [], cols: [] };
 
   const clearedRowSet = new Set(clearedRows);
   const clearedColSet = new Set(clearedCols);
-  const seen = new Set();
-  const candidates = [];
+  const seen = new Set<string>();
+  const candidates: Array<{ type: "row" | "col"; index: number }> = [];
 
   clearedRows.forEach((row) => {
     [row - 1, row + 1].forEach((nextRow) => {
@@ -104,7 +115,7 @@ export function pickAdjacentLines(clearedRows, clearedCols, count) {
 }
 
 // Extend a clear result by also clearing `extraLineCount` lines next to the cleared ones.
-export function applySpreadClear(result, extraLineCount) {
+export function applySpreadClear(result: ClearedResult, extraLineCount: number): ClearedResult {
   if (extraLineCount <= 0 || (!result.clearedRows.length && !result.clearedCols.length)) {
     return result;
   }

@@ -1,18 +1,32 @@
-import { colorClass } from "../constants/gameData.js";
+import { colorClass } from "../constants/gameData";
 import "../styles/Board.css";
+import type { Board as BoardType, PieceInstance, PlacementPosition } from "../types";
+
+interface BoardProps {
+  board: BoardType;
+  boardRef: React.RefObject<HTMLDivElement | null>;
+  clearingCells: Set<string>;
+  hoverCell: PlacementPosition | null;
+  onCellClick: (row: number, col: number) => void;
+  onCellEnter: (cell: PlacementPosition) => void;
+  onCellLeave: () => void;
+  previewClearingCells: Set<string>;
+  previewCells: Set<string>;
+  selectedPiece: PieceInstance | null;
+}
 
 function Board({
   board,
   boardRef,
   clearingCells,
-  hoverCell,
+  hoverCell: _hoverCell,
   onCellClick,
   onCellEnter,
   onCellLeave,
   previewClearingCells,
   previewCells,
   selectedPiece
-}) {
+}: BoardProps) {
   return (
     <div className="board" ref={boardRef}>
       {board.map((row, rowIndex) =>

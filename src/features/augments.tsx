@@ -2,6 +2,17 @@ import { useState } from "react";
 import { Bomb, Flame, Layers, Plus, RefreshCw, Sparkles, Star, Zap } from "lucide-react";
 import "../styles/AugmentPanel.css";
 import "../styles/AugmentChoiceModal.css";
+import type {
+  AugmentDetail,
+  AugmentDetailWithLevel,
+  AugmentId,
+  AugmentLevels,
+  AugmentState,
+  RerollReplacementMode,
+  SavedGame,
+  ScoreBreakdown
+} from "../types";
+import type { PieceInstance } from "../types";
 
 export const AUGMENT_CHOICE_COUNT = 3;
 
@@ -18,7 +29,7 @@ export const ALL_CLEAR_SCORE_BONUS = 50;
 export const SPREAD_FILL_CHANCE_PER_LEVEL = 0.04;
 export const SPREAD_CLEAR_CHANCE_PER_LEVEL = 0.04;
 
-export const AUGMENT_IDS = [
+export const AUGMENT_IDS: AugmentId[] = [
   "placement-score",
   "clear-score",
   "tray-combo",
@@ -30,11 +41,11 @@ export const AUGMENT_IDS = [
 ];
 
 // Augments that cap out at a fixed level (others can be leveled indefinitely).
-const AUGMENT_MAX_LEVELS = {
+const AUGMENT_MAX_LEVELS: Partial<Record<AugmentId, number>> = {
   "reroll-power": REROLL_MAX_LEVEL
 };
 
-export const augmentDetails = [
+export const augmentDetails: AugmentDetail[] = [
   {
     Icon: Plus,
     id: "placement-score",
@@ -51,7 +62,7 @@ export const augmentDetails = [
     Icon: Flame,
     id: "tray-combo",
     label: "콤보",
-    summary: "콤보가 쌓였을 때 얻는 추가 점수가 증가합니다."
+    summary: "줄을 지울 때마다 콤보가 오르고, 콤보 추가 점수가 증가합니다."
   },
   {
     Icon: RefreshCw,
@@ -85,47 +96,47 @@ export const augmentDetails = [
   }
 ];
 
-export function getAugmentMaxLevel(id) {
+export function getAugmentMaxLevel(id: AugmentId): number {
   return AUGMENT_MAX_LEVELS[id] ?? Infinity;
 }
 
-function createAugmentLevels() {
-  return Object.fromEntries(AUGMENT_IDS.map((id) => [id, 0]));
+function createAugmentLevels(): AugmentLevels {
+  return Object.fromEntries(AUGMENT_IDS.map((id) => [id, 0])) as AugmentLevels;
 }
 
-function normalizeAugmentLevels(levels) {
+function normalizeAugmentLevels(levels: Partial<AugmentLevels> | null | undefined): AugmentLevels {
   return Object.fromEntries(
     AUGMENT_IDS.map((id) => {
-      const raw = Number.isFinite(levels?.[id]) ? Math.max(0, levels[id]) : 0;
+      const raw = Number.isFinite(levels?.[id]) ? Math.max(0, levels![id]!) : 0;
       return [id, Math.min(getAugmentMaxLevel(id), raw)];
     })
-  );
+  ) as AugmentLevels;
 }
 
 // Reroll-power level → how many tray blocks a reroll affects (Lv1:1, Lv2:2, Lv3+:3).
-export function getRerollCount(level) {
+export function getRerollCount(level: number): number {
   return Math.min(3, Math.max(1, level));
 }
 
 // Reroll-power level → how the replacement blocks are chosen.
-export function getRerollReplacementMode(level) {
+export function getRerollReplacementMode(level: number): RerollReplacementMode {
   if (level >= 5) return "deck";
   if (level >= 4) return "candidates";
   return "random";
 }
 
-export function getAugmentLevel(augmentState, id) {
+export function getAugmentLevel(augmentState: AugmentState | null | undefined, id: AugmentId): number {
   return normalizeAugmentLevels(augmentState?.levels)[id] || 0;
 }
 
 // The next augment is offered after gaining another (50 + 10% of the score at the last
 // choice) points on top of that score — so the gap always stays ahead of the current
 // score. The very first augment needs AUGMENT_BASE_SCORE (50), since last = 0.
-export function getNextAugmentScore(scoreAtLastChoice) {
+export function getNextAugmentScore(scoreAtLastChoice: number): number {
   return scoreAtLastChoice + AUGMENT_BASE_SCORE + Math.ceil(scoreAtLastChoice * AUGMENT_SCORE_RATE);
 }
 
-export function createInitialAugmentState() {
+export function createInitialAugmentState(): AugmentState {
   return {
     combo: 0,
     levels: createAugmentLevels(),
@@ -135,66 +146,72 @@ export function createInitialAugmentState() {
   };
 }
 
-export function getSavedAugmentState(savedGame) {
-  const scoreAtLastChoice = Number.isFinite(savedGame?.augmentState?.scoreAtLastChoice)
-    ? Math.max(0, savedGame.augmentState.scoreAtLastChoice)
+export function getSavedAugmentState(savedGame: SavedGame | UndoSnapshotLike): AugmentState {
+  const augmentSaved = (savedGame as SavedGame).augmentState;
+  const scoreAtLastChoice = Number.isFinite(augmentSaved?.scoreAtLastChoice)
+    ? Math.max(0, augmentSaved!.scoreAtLastChoice!)
     : 0;
 
   return {
-    combo: Number.isFinite(savedGame?.augmentState?.combo) ? Math.max(0, savedGame.augmentState.combo) : 0,
-    levels: normalizeAugmentLevels(savedGame?.augmentState?.levels),
-    nextChoiceScore: Number.isFinite(savedGame?.augmentState?.nextChoiceScore)
-      ? Math.max(0, savedGame.augmentState.nextChoiceScore)
+    combo: Number.isFinite(augmentSaved?.combo) ? Math.max(0, augmentSaved!.combo!) : 0,
+    levels: normalizeAugmentLevels(augmentSaved?.levels as Partial<AugmentLevels> | undefined),
+    nextChoiceScore: Number.isFinite(augmentSaved?.nextChoiceScore)
+      ? Math.max(0, augmentSaved!.nextChoiceScore!)
       : getNextAugmentScore(scoreAtLastChoice),
     scoreAtLastChoice,
-    trayClearedLine: Boolean(savedGame?.augmentState?.trayClearedLine)
+    trayClearedLine: Boolean(augmentSaved?.trayClearedLine)
   };
 }
 
-export function getTotalAugmentLevels(augmentState) {
+// Local interface for the undo snapshot shape passed into getSavedAugmentState
+interface UndoSnapshotLike {
+  augmentState?: Partial<AugmentState> & { levels?: Partial<AugmentLevels> };
+}
+
+export function getTotalAugmentLevels(augmentState: AugmentState): number {
   return AUGMENT_IDS.reduce((total, id) => total + getAugmentLevel(augmentState, id), 0);
 }
 
 // Chance (0–1) that placing a block spreads fill into nearby empty cells.
-export function getSpreadFillChance(augmentState) {
+export function getSpreadFillChance(augmentState: AugmentState): number {
   return Math.min(1, getAugmentLevel(augmentState, "spread-fill") * SPREAD_FILL_CHANCE_PER_LEVEL);
 }
 
 // How many nearby empty cells get filled when spread-fill triggers (level-based: 1, +1 every 3 levels).
-export function getSpreadFillCellCount(augmentState) {
+export function getSpreadFillCellCount(augmentState: AugmentState): number {
   const level = getAugmentLevel(augmentState, "spread-fill");
   return level <= 0 ? 0 : 1 + Math.floor((level - 1) / 3);
 }
 
 // Roll the spread-fill effect for a placement; returns the number of cells to fill (0 = no effect).
-export function rollSpreadFill(augmentState) {
+export function rollSpreadFill(augmentState: AugmentState): number {
   if (getAugmentLevel(augmentState, "spread-fill") <= 0) return 0;
   if (Math.random() >= getSpreadFillChance(augmentState)) return 0;
   return getSpreadFillCellCount(augmentState);
 }
 
 // Chance (0–1) that clearing a line also clears nearby lines.
-export function getSpreadClearChance(augmentState) {
+export function getSpreadClearChance(augmentState: AugmentState): number {
   return Math.min(1, getAugmentLevel(augmentState, "spread-clear") * SPREAD_CLEAR_CHANCE_PER_LEVEL);
 }
 
 // How many nearby lines get cleared when spread-clear triggers.
-export function getSpreadClearCount(augmentState) {
+export function getSpreadClearCount(augmentState: AugmentState): number {
   return 1 + Math.floor((getAugmentLevel(augmentState, "spread-clear") - 1) / 3);
 }
 
 // Roll the spread-clear effect after a line clear; returns the number of extra lines (0 = no effect).
-export function rollSpreadClear(augmentState) {
+export function rollSpreadClear(augmentState: AugmentState): number {
   if (getAugmentLevel(augmentState, "spread-clear") <= 0) return 0;
   if (Math.random() >= getSpreadClearChance(augmentState)) return 0;
   return getSpreadClearCount(augmentState);
 }
 
-export function shouldOfferAugmentChoice(augmentState, score) {
+export function shouldOfferAugmentChoice(augmentState: AugmentState, score: number): boolean {
   return score >= augmentState.nextChoiceScore;
 }
 
-export function chooseAugment(augmentState, augmentId, score) {
+export function chooseAugment(augmentState: AugmentState, augmentId: AugmentId, score: number): AugmentState {
   const levels = normalizeAugmentLevels(augmentState.levels);
 
   return {
@@ -208,32 +225,28 @@ export function chooseAugment(augmentState, augmentId, score) {
   };
 }
 
-export function resetAugmentTrayProgress(augmentState) {
+export function resetAugmentTrayProgress(augmentState: AugmentState): AugmentState {
   return {
     ...augmentState,
     trayClearedLine: false
   };
 }
 
-export function getNextAugmentStateAfterPlacement(augmentState, { cleared, trayCompleted }) {
-  // Combo is a base mechanic now: it always advances regardless of the combo augment.
+export function getNextAugmentStateAfterPlacement(
+  augmentState: AugmentState,
+  { cleared, trayCompleted }: { cleared: number; trayCompleted: boolean }
+): AugmentState {
   const trayClearedLine = augmentState.trayClearedLine || cleared > 0;
-
-  if (!trayCompleted) {
-    return {
-      ...augmentState,
-      trayClearedLine
-    };
-  }
+  const nextCombo = augmentState.combo + Math.max(0, cleared);
 
   return {
     ...augmentState,
-    combo: trayClearedLine ? augmentState.combo + 1 : 0,
-    trayClearedLine: false
+    combo: trayCompleted && !trayClearedLine ? 0 : nextCombo,
+    trayClearedLine: trayCompleted ? false : trayClearedLine
   };
 }
 
-export function getAugmentEffectText(id, level) {
+export function getAugmentEffectText(id: AugmentId, level: number): string {
   if (id === "placement-score") {
     return `블록 설치 점수 +${level * PLACEMENT_SCORE_BONUS}`;
   }
@@ -273,7 +286,19 @@ export function getAugmentEffectText(id, level) {
   return `콤보 추가 점수 +${level * COMBO_CLEAR_SCORE_BONUS}/콤보·줄`;
 }
 
-export function getAugmentedScore({ augmentState, cleared, piece, allClear = false, extraCells = 0 }) {
+export function getAugmentedScore({
+  augmentState,
+  cleared,
+  piece,
+  allClear = false,
+  extraCells = 0
+}: {
+  augmentState: AugmentState;
+  cleared: number;
+  piece: PieceInstance;
+  allClear?: boolean;
+  extraCells?: number;
+}): ScoreBreakdown {
   const placementLevel = getAugmentLevel(augmentState, "placement-score");
   const clearLevel = getAugmentLevel(augmentState, "clear-score");
   const comboLevel = getAugmentLevel(augmentState, "tray-combo");
@@ -297,9 +322,13 @@ export function getAugmentedScore({ augmentState, cleared, piece, allClear = fal
   };
 }
 
-export function AugmentPanel({ augmentState }) {
-  const [activeAugmentId, setActiveAugmentId] = useState(null);
-  const ownedAugments = augmentDetails
+interface AugmentPanelProps {
+  augmentState: AugmentState;
+}
+
+export function AugmentPanel({ augmentState }: AugmentPanelProps) {
+  const [activeAugmentId, setActiveAugmentId] = useState<AugmentId | null>(null);
+  const ownedAugments: AugmentDetailWithLevel[] = augmentDetails
     .map((augment) => ({
       ...augment,
       level: getAugmentLevel(augmentState, augment.id)
@@ -309,16 +338,15 @@ export function AugmentPanel({ augmentState }) {
   const ActiveIcon = activeAugment?.Icon;
 
   return (
-    <section className="augment-panel" aria-label="Augments" onMouseLeave={() => setActiveAugmentId(null)}>
+    <section className="augment-panel" aria-label="증강" onMouseLeave={() => setActiveAugmentId(null)}>
       <header className="augment-panel-head">
-        <span>Augment</span>
         <strong>증강</strong>
       </header>
       <ul className="augment-list">
         {ownedAugments.map(({ Icon, id, label, level, summary }) => (
           <li
             aria-describedby={activeAugmentId === id ? "augment-detail" : undefined}
-            aria-label={`${label} level ${level}`}
+            aria-label={`${label} ${level}레벨`}
             className="augment-card"
             key={id}
             onBlur={() => setActiveAugmentId(null)}
@@ -339,7 +367,7 @@ export function AugmentPanel({ augmentState }) {
           </span>
           <div className="augment-detail-copy">
             <strong>{activeAugment.label}</strong>
-            <span>Lv.{activeAugment.level}</span>
+            <span>{activeAugment.level}레벨</span>
             <p>{activeAugment.summary}</p>
           </div>
         </aside>
@@ -350,8 +378,10 @@ export function AugmentPanel({ augmentState }) {
 
 // Pick `count` distinct augments at random (Fisher-Yates shuffle, then slice),
 // excluding any augment that has already reached its max level.
-function pickRandomAugments(count, augmentState) {
-  const pool = augmentDetails.filter((augment) => getAugmentLevel(augmentState, augment.id) < getAugmentMaxLevel(augment.id));
+function pickRandomAugments(count: number, augmentState: AugmentState): AugmentDetail[] {
+  const pool = augmentDetails.filter(
+    (augment) => getAugmentLevel(augmentState, augment.id) < getAugmentMaxLevel(augment.id)
+  );
   for (let i = pool.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -359,15 +389,20 @@ function pickRandomAugments(count, augmentState) {
   return pool.slice(0, Math.min(count, pool.length));
 }
 
-export function AugmentChoiceModal({ augmentState, onChoose, score }) {
+interface AugmentChoiceModalProps {
+  augmentState: AugmentState;
+  onChoose: (id: AugmentId) => void;
+  score: number;
+}
+
+export function AugmentChoiceModal({ augmentState, onChoose, score }: AugmentChoiceModalProps) {
   // Roll the offered augments once per modal mount so they stay stable while open.
-  const [choices] = useState(() => pickRandomAugments(AUGMENT_CHOICE_COUNT, augmentState));
+  const [choices] = useState<AugmentDetail[]>(() => pickRandomAugments(AUGMENT_CHOICE_COUNT, augmentState));
 
   return (
     <div className="augment-choice-backdrop" role="dialog" aria-modal="true" aria-labelledby="augment-choice-title">
       <section className="augment-choice-panel">
         <div className="augment-choice-heading">
-          <span>Augment</span>
           <strong id="augment-choice-title">증강 선택</strong>
         </div>
         <div className="augment-choice-list">
@@ -381,7 +416,7 @@ export function AugmentChoiceModal({ augmentState, onChoose, score }) {
                   <Icon size={48} aria-hidden="true" />
                 </span>
                 <span className="augment-choice-title">
-                  {label} {nextLevel > 1 ? `Lv.${nextLevel}` : ""}
+                  {label} {nextLevel > 1 ? `${nextLevel}레벨` : ""}
                 </span>
                 <span className="augment-choice-summary">{summary}</span>
                 <span className="augment-choice-effect">{getAugmentEffectText(id, nextLevel)}</span>

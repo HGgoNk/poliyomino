@@ -2,17 +2,22 @@ import { useEffect, useRef, useState } from "react";
 import "../styles/ScoreBoard.css";
 import { Trophy } from "lucide-react";
 
-function ScoreBoard({ best, score }) {
-  const [displayedScore, setDisplayedScore] = useState(score);
-  const [isCounting, setIsCounting] = useState(false);
-  const displayedScoreRef = useRef(score);
+interface ScoreBoardProps {
+  best: number;
+  score: number;
+}
+
+function ScoreBoard({ best, score }: ScoreBoardProps) {
+  const [displayedScore, setDisplayedScore] = useState<number>(score);
+  const [isCounting, setIsCounting] = useState<boolean>(false);
+  const displayedScoreRef = useRef<number>(score);
 
   useEffect(() => {
     displayedScoreRef.current = displayedScore;
   }, [displayedScore]);
 
   useEffect(() => {
-    let timerId;
+    let timerId: ReturnType<typeof window.setInterval> | undefined;
     let currentScore = displayedScoreRef.current;
 
     if (score <= currentScore) {

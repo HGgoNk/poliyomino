@@ -1,23 +1,41 @@
 import "../styles/DeckModal.css";
 import { X } from "lucide-react";
-import PieceShape from "./PieceShape.jsx";
-import { SPECIAL_LABELS } from "../features/specials.js";
+import PieceShape from "./PieceShape";
+import { SPECIAL_LABELS } from "../features/specials";
+import type { PieceInstance } from "../types";
 
-function DeckTile({ piece }) {
+interface DeckTileProps {
+  piece: PieceInstance;
+}
+
+function DeckTile({ piece }: DeckTileProps) {
   return (
     <div className={`deck-tile ${piece.special ? "special" : ""}`}>
       <PieceShape cellSize={16} cellGap={2} piece={piece} />
-      {piece.special && <span className="deck-tile-label">{SPECIAL_LABELS[piece.special] || "특수"}</span>}
+      {piece.special && (
+        <span className="deck-tile-label">{SPECIAL_LABELS[piece.special] ?? "특수"}</span>
+      )}
     </div>
   );
 }
 
-function DeckModal({ deckPieces, onClose }) {
+interface DeckModalProps {
+  deckPieces: PieceInstance[];
+  onClose: () => void;
+}
+
+function DeckModal({ deckPieces, onClose }: DeckModalProps) {
   const specials = deckPieces.filter((piece) => piece.special);
   const base = deckPieces.filter((piece) => !piece.special);
 
   return (
-    <div className="deck-backdrop" role="dialog" aria-modal="true" aria-labelledby="deck-title" onClick={onClose}>
+    <div
+      className="deck-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="deck-title"
+      onClick={onClose}
+    >
       <section className="deck-panel" onClick={(event) => event.stopPropagation()}>
         <div className="deck-heading">
           <div>

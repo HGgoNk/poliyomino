@@ -1,4 +1,5 @@
-import { PIECES } from "../constants/gameData.js";
+import { PIECES } from "../constants/gameData";
+import type { PieceTemplate } from "../types";
 
 // Special blocks share base shapes but trigger extra effects. The ghost block can be
 // placed overlapping existing blocks; when an overlapped cell is later cleared, that
@@ -9,9 +10,15 @@ export const GHOST_CLEAR_BONUS = 20;
 // current game only (cleared on reset).
 export const GHOST_AUGMENT_INTERVAL = 3;
 
+export interface GhostTemplate extends PieceTemplate {
+  special: "ghost";
+  color: "ghost";
+  baseId: string;
+}
+
 // Build a ghost piece template from a random base shape. The shape is fixed at
 // acquisition time; the id encodes the shape so the tray solver caches it correctly.
-export function createGhostTemplate() {
+export function createGhostTemplate(): GhostTemplate {
   const base = PIECES[Math.floor(Math.random() * PIECES.length)];
   return {
     id: `ghost-${base.id}`,
@@ -22,20 +29,24 @@ export function createGhostTemplate() {
   };
 }
 
-export function isGhostPiece(piece) {
+export function isGhostPiece(piece: PieceTemplate | null | undefined): boolean {
   return piece?.special === "ghost";
 }
 
 // Given the currently-marked ghost cells, any cells newly overlapped by a ghost
 // placement, and the cells cleared this turn, return the doubled-score bonus and the
 // remaining marks (overlapped cells still on the board, awaiting a future clear).
-export function resolveGhostClears(ghostCells, newOverlapCells, clearedCells) {
+export function resolveGhostClears(
+  ghostCells: Set<string>,
+  newOverlapCells: string[],
+  clearedCells: Set<string> | string[]
+): { bonus: number; ghostCells: Set<string> } {
   const cleared = clearedCells instanceof Set ? clearedCells : new Set(clearedCells);
   const marked = new Set(ghostCells);
   newOverlapCells.forEach((key) => marked.add(key));
 
   let clearedCount = 0;
-  const remaining = new Set();
+  const remaining = new Set<string>();
   marked.forEach((key) => {
     if (cleared.has(key)) clearedCount += 1;
     else remaining.add(key);
@@ -44,12 +55,13 @@ export function resolveGhostClears(ghostCells, newOverlapCells, clearedCells) {
   return { bonus: clearedCount * GHOST_CLEAR_BONUS, ghostCells: remaining };
 }
 
-export function isValidGhostPiece(piece) {
+export function isValidGhostPiece(piece: unknown): piece is GhostTemplate {
   return (
-    piece &&
-    piece.special === "ghost" &&
-    typeof piece.id === "string" &&
-    Array.isArray(piece.cells) &&
-    piece.cells.every((cell) => Array.isArray(cell) && cell.length === 2)
+    piece !== null &&
+    typeof piece === "object" &&
+    (piece as PieceTemplate).special === "ghost" &&
+    typeof (piece as PieceTemplate).id === "string" &&
+    Array.isArray((piece as PieceTemplate).cells) &&
+    (piece as PieceTemplate).cells.every((cell) => Array.isArray(cell) && cell.length === 2)
   );
 }
