@@ -6,7 +6,7 @@ import { deckPieceInstances, rerollCandidates, rerollSlots } from "../utils/tray
 
 const CANDIDATE_COUNT = 3;
 
-function RerollModal({ board, level, onApply, onCancel, tray }) {
+function RerollModal({ board, deckPieces, level, onApply, onCancel, tray }) {
   const filledSlots = useMemo(
     () => tray.reduce((slots, piece, index) => (piece ? [...slots, index] : slots), []),
     [tray]
@@ -30,14 +30,14 @@ function RerollModal({ board, level, onApply, onCancel, tray }) {
   }
 
   function nextOptions() {
-    return mode === "deck" ? deckPieceInstances() : rerollCandidates(CANDIDATE_COUNT);
+    return mode === "deck" ? deckPieceInstances(deckPieces) : rerollCandidates(CANDIDATE_COUNT, deckPieces);
   }
 
   function confirmSelection() {
     if (selectedSlots.length !== count) return;
 
     if (mode === "random") {
-      onApply(rerollSlots(board, tray, selectedSlots));
+      onApply(rerollSlots(board, tray, selectedSlots, deckPieces));
       return;
     }
 

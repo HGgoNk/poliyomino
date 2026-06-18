@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bomb, Eraser, Flame, Layers, PaintBucket, Plus, RefreshCw, Sparkles, Star, Zap } from "lucide-react";
+import { Bomb, Flame, Layers, Plus, RefreshCw, Sparkles, Star, Zap } from "lucide-react";
 import "../styles/AugmentPanel.css";
 import "../styles/AugmentChoiceModal.css";
 
@@ -9,11 +9,8 @@ export const PLACEMENT_SCORE_BONUS = 2;
 export const CLEAR_SCORE_BONUS_PER_LINE = 10;
 export const COMBO_BASE_BONUS = 5;
 export const COMBO_CLEAR_SCORE_BONUS = 5;
-export const MIN_AUGMENT_SCORE_STEP = 10;
-export const FILL_SCORE_BONUS = 2;
-export const FILL_CELLS_PER_BONUS = 5;
-export const ERASE_SCORE_BONUS = 2;
-export const ERASE_CELLS_PER_BONUS = 5;
+export const AUGMENT_BASE_SCORE = 50;
+export const AUGMENT_SCORE_RATE = 0.1;
 export const REROLL_MAX_LEVEL = 5;
 export const MULTI_LINE_BASE_BONUS = 15;
 export const MULTI_LINE_SCORE_BONUS = 10;
@@ -25,8 +22,6 @@ export const AUGMENT_IDS = [
   "placement-score",
   "clear-score",
   "tray-combo",
-  "fill-power",
-  "erase-power",
   "reroll-power",
   "multi-line",
   "all-clear",
@@ -59,22 +54,10 @@ export const augmentDetails = [
     summary: "콤보가 쌓였을 때 얻는 추가 점수가 증가합니다."
   },
   {
-    Icon: PaintBucket,
-    id: "fill-power",
-    label: "채우기",
-    summary: "채우기 아이템이 강화됩니다. 5레벨마다 채울 수 있는 칸이 1개 늘어납니다."
-  },
-  {
-    Icon: Eraser,
-    id: "erase-power",
-    label: "지우기",
-    summary: "지우기 아이템이 강화됩니다. 5레벨마다 지울 수 있는 칸이 1개 늘어납니다."
-  },
-  {
     Icon: RefreshCw,
     id: "reroll-power",
-    label: "리롤",
-    summary: "리롤 아이템이 강화됩니다. 레벨에 따라 바꿀 블록을 직접 고르고, 개수가 늘며, 새 블록도 선택할 수 있습니다."
+    label: "다시뽑기",
+    summary: "다시뽑기 아이템이 강화됩니다. 레벨에 따라 바꿀 블록을 직접 고르고, 개수가 늘며, 새 블록도 선택할 수 있습니다."
   },
   {
     Icon: Layers,
@@ -135,19 +118,18 @@ export function getAugmentLevel(augmentState, id) {
   return normalizeAugmentLevels(augmentState?.levels)[id] || 0;
 }
 
-export function getAugmentScoreStep(score) {
-  return Math.max(MIN_AUGMENT_SCORE_STEP, Math.ceil(score * 0.1));
-}
-
-export function getNextAugmentScore(score) {
-  return score + getAugmentScoreStep(score);
+// The next augment is offered after gaining another (50 + 10% of the score at the last
+// choice) points on top of that score — so the gap always stays ahead of the current
+// score. The very first augment needs AUGMENT_BASE_SCORE (50), since last = 0.
+export function getNextAugmentScore(scoreAtLastChoice) {
+  return scoreAtLastChoice + AUGMENT_BASE_SCORE + Math.ceil(scoreAtLastChoice * AUGMENT_SCORE_RATE);
 }
 
 export function createInitialAugmentState() {
   return {
     combo: 0,
     levels: createAugmentLevels(),
-    nextChoiceScore: 0,
+    nextChoiceScore: getNextAugmentScore(0),
     scoreAtLastChoice: 0,
     trayClearedLine: false
   };
@@ -171,26 +153,6 @@ export function getSavedAugmentState(savedGame) {
 
 export function getTotalAugmentLevels(augmentState) {
   return AUGMENT_IDS.reduce((total, id) => total + getAugmentLevel(augmentState, id), 0);
-}
-
-// Extra score granted to every cell painted by the fill item (per fill-power level).
-export function getFillCellBonus(augmentState) {
-  return getAugmentLevel(augmentState, "fill-power") * FILL_SCORE_BONUS;
-}
-
-// How many cells the fill item can paint, given its base count plus fill-power upgrades.
-export function getFillItemCells(augmentState, baseCells) {
-  return baseCells + Math.floor(getAugmentLevel(augmentState, "fill-power") / FILL_CELLS_PER_BONUS);
-}
-
-// Extra score granted to every cell removed by the erase item (per erase-power level).
-export function getEraseCellBonus(augmentState) {
-  return getAugmentLevel(augmentState, "erase-power") * ERASE_SCORE_BONUS;
-}
-
-// How many cells the erase item can remove, given its base count plus erase-power upgrades.
-export function getEraseItemCells(augmentState, baseCells) {
-  return baseCells + Math.floor(getAugmentLevel(augmentState, "erase-power") / ERASE_CELLS_PER_BONUS);
 }
 
 // Chance (0–1) that placing a block spreads fill into nearby empty cells.
@@ -229,7 +191,7 @@ export function rollSpreadClear(augmentState) {
 }
 
 export function shouldOfferAugmentChoice(augmentState, score) {
-  return getTotalAugmentLevels(augmentState) === 0 || score >= augmentState.nextChoiceScore;
+  return score >= augmentState.nextChoiceScore;
 }
 
 export function chooseAugment(augmentState, augmentId, score) {
@@ -278,18 +240,6 @@ export function getAugmentEffectText(id, level) {
 
   if (id === "clear-score") {
     return `줄 제거 점수 +${level * CLEAR_SCORE_BONUS_PER_LINE}`;
-  }
-
-  if (id === "fill-power") {
-    const extraCells = Math.floor(level / FILL_CELLS_PER_BONUS);
-    const cellText = extraCells > 0 ? `, 채우는 칸 +${extraCells}` : "";
-    return `채우는 칸 점수 +${level * FILL_SCORE_BONUS}${cellText}`;
-  }
-
-  if (id === "erase-power") {
-    const extraCells = Math.floor(level / ERASE_CELLS_PER_BONUS);
-    const cellText = extraCells > 0 ? `, 지우는 칸 +${extraCells}` : "";
-    return `지우는 칸 점수 +${level * ERASE_SCORE_BONUS}${cellText}`;
   }
 
   if (id === "reroll-power") {
@@ -348,44 +298,52 @@ export function getAugmentedScore({ augmentState, cleared, piece, allClear = fal
 }
 
 export function AugmentPanel({ augmentState }) {
-  const columns = Math.min(3, augmentDetails.length);
+  const [activeAugmentId, setActiveAugmentId] = useState(null);
+  const ownedAugments = augmentDetails
+    .map((augment) => ({
+      ...augment,
+      level: getAugmentLevel(augmentState, augment.id)
+    }))
+    .filter(({ level }) => level > 0);
+  const activeAugment = ownedAugments.find(({ id }) => id === activeAugmentId);
+  const ActiveIcon = activeAugment?.Icon;
 
   return (
-    <section className="augment-panel" aria-label="Augments">
-      <div className="augment-list" style={{ "--augment-columns": columns }}>
-        {augmentDetails.map(({ Icon, id, label, summary }, index) => {
-          const level = getAugmentLevel(augmentState, id);
-          const tooltipId = `augment-tooltip-${id}`;
-
-          if (level <= 0) {
-            return <div aria-label={`Empty augment slot ${index + 1}`} className="augment-item empty" key={id} />;
-          }
-
-          return (
-            <div
-              aria-describedby={tooltipId}
-              aria-label={`${label} level ${level}`}
-              className="augment-item owned"
-              key={id}
-              role="img"
-              tabIndex={0}
-            >
-              <span className="augment-flip-card">
-                <span className="augment-front">
-                  <span className="augment-icon">
-                    <Icon size={30} aria-hidden="true" />
-                  </span>
-                </span>
-                <span className="augment-tooltip" id={tooltipId} role="tooltip">
-                  <span className="augment-tooltip-level">lv {level}</span>
-                  <strong className="augment-tooltip-name">{label}</strong>
-                  <span className="augment-tooltip-body">{summary}</span>
-                </span>
-              </span>
-            </div>
-          );
-        })}
-      </div>
+    <section className="augment-panel" aria-label="Augments" onMouseLeave={() => setActiveAugmentId(null)}>
+      <header className="augment-panel-head">
+        <span>Augment</span>
+        <strong>증강</strong>
+      </header>
+      <ul className="augment-list">
+        {ownedAugments.map(({ Icon, id, label, level, summary }) => (
+          <li
+            aria-describedby={activeAugmentId === id ? "augment-detail" : undefined}
+            aria-label={`${label} level ${level}`}
+            className="augment-card"
+            key={id}
+            onBlur={() => setActiveAugmentId(null)}
+            onFocus={() => setActiveAugmentId(id)}
+            onMouseEnter={() => setActiveAugmentId(id)}
+            tabIndex={0}
+          >
+            <span className="augment-card-icon">
+              <Icon size={35} aria-hidden="true" />
+            </span>
+          </li>
+        ))}
+      </ul>
+      {activeAugment && ActiveIcon && (
+        <aside className="augment-detail-panel" id="augment-detail">
+          <span className="augment-detail-icon">
+            <ActiveIcon size={54} aria-hidden="true" />
+          </span>
+          <div className="augment-detail-copy">
+            <strong>{activeAugment.label}</strong>
+            <span>Lv.{activeAugment.level}</span>
+            <p>{activeAugment.summary}</p>
+          </div>
+        </aside>
+      )}
     </section>
   );
 }

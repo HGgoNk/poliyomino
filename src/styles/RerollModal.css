@@ -1,7 +1,7 @@
 .reroll-backdrop {
   align-items: center;
-  background: hsl(204 88.1% 16.5% / 0.44);
-  backdrop-filter: blur(3px);
+  background: hsl(206 50% 28% / 0.42);
+  backdrop-filter: blur(4px);
   display: flex;
   inset: 0;
   justify-content: center;
@@ -11,12 +11,11 @@
 }
 
 .reroll-panel {
-  background: var(--blue-600);
-  border-radius: 18px;
-  box-shadow:
-    inset 0 1px 0 hsl(0 0% 100% / 0.18),
-    0 20px 36px hsl(204 88.1% 16.5% / 0.4);
-  color: hsl(0 0% 100%);
+  background: var(--surface-card);
+  border: 1px solid var(--surface-card-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  color: var(--text-strong);
   display: grid;
   gap: 18px;
   justify-items: center;
@@ -34,20 +33,22 @@
 }
 
 .reroll-heading span {
-  color: var(--blue-100);
+  color: var(--accent-strong);
   font-size: 0.8rem;
   font-weight: 900;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .reroll-heading strong {
+  color: var(--text-strong);
   font-size: clamp(1.6rem, 4vw, 2.2rem);
   font-weight: 900;
   line-height: 1;
 }
 
 .reroll-hint {
-  color: var(--blue-100);
+  color: var(--text-muted);
   font-size: 0.95rem;
   font-weight: 800;
   margin: 0;
@@ -71,28 +72,29 @@
 
 .reroll-piece {
   align-items: center;
-  background: hsl(203 79.8% 51.4%);
-  border: 3px solid transparent;
-  border-radius: 12px;
+  background: var(--surface-card-soft);
+  border: 2px solid var(--surface-card-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
   display: flex;
   justify-content: center;
   min-height: 92px;
   min-width: 92px;
   padding: 14px;
-  transition: filter 140ms ease, transform 140ms ease, border-color 140ms ease;
+  transition: box-shadow 140ms ease, transform 140ms ease, border-color 140ms ease;
 }
 
 .reroll-piece:hover,
 .reroll-piece:focus-visible {
-  filter: brightness(1.08);
+  box-shadow: var(--shadow-md);
   outline: none;
   transform: translateY(-2px);
 }
 
 .reroll-piece.selected {
-  border-color: hsl(48 92% 62%);
-  box-shadow: 0 0 0 2px hsl(48 92% 62% / 0.4);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px hsl(202 89% 53% / 0.28), var(--shadow-sm);
 }
 
 .reroll-actions {
@@ -104,32 +106,36 @@
 .reroll-cancel,
 .reroll-confirm {
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
   font-size: 1rem;
   font-weight: 800;
   padding: 10px 26px;
-  transition: filter 140ms ease, transform 140ms ease;
+  transition: box-shadow 140ms ease, transform 140ms ease;
 }
 
 .reroll-cancel {
-  background: hsl(204 30% 100% / 0.16);
-  color: hsl(0 0% 100%);
+  background: var(--surface-card-soft);
+  border: 1px solid var(--surface-card-border);
+  color: var(--text-body);
 }
 
 .reroll-confirm {
-  background: var(--blue-100);
-  color: var(--blue-950);
+  background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+  box-shadow: var(--shadow-md);
+  color: hsl(0 0% 100%);
 }
 
 .reroll-confirm:disabled {
+  background: var(--surface-tint);
+  box-shadow: none;
+  color: var(--text-muted);
   cursor: not-allowed;
-  filter: grayscale(0.4);
-  opacity: 0.55;
+  opacity: 0.75;
 }
 
 .reroll-cancel:hover,
 .reroll-confirm:not(:disabled):hover {
-  filter: brightness(1.08);
+  box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }

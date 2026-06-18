@@ -1,35 +1,63 @@
 .undo-items {
-  background: linear-gradient(180deg, var(--blue-700), var(--blue-850));
-  border: 1px solid hsl(0 0% 100% / 0.22);
-  border-radius: 8px;
-  box-shadow:
-    inset 0 1px 0 hsl(0 0% 100% / 0.18),
-    0 16px 28px var(--blue-shadow);
-  display: flex;
-  gap: 16px;
+  background: var(--panel-dark);
+  border: 1px solid var(--panel-dark-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  color: hsl(0 0% 100%);
+  display: grid;
+  gap: 12px;
+  /* Share column 3 / row 1 with the deck button: item panel pinned to the top,
+     deck button (align-self: end) sits near the tray. */
   grid-column: 3;
+  grid-row: 1;
+  align-self: start;
   justify-self: start;
-  padding: 26px 18px 20px;
+  padding: 16px;
+}
+
+.undo-items-head {
+  display: grid;
+  gap: 2px;
+  padding: 2px 4px;
+}
+
+.undo-items-head span {
+  color: var(--blue-300);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.undo-items-head strong {
+  color: hsl(0 0% 100%);
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.undo-item-row {
+  display: flex;
+  gap: 12px;
 }
 
 .undo-item {
   align-items: center;
-  background: linear-gradient(180deg, var(--blue-500), var(--blue-600));
-  border: 0;
-  border-radius: 10px;
-  box-shadow:
-    inset 0 1px 0 hsl(0 0% 100% / 0.28),
-    0 8px 14px hsl(204 88.1% 16.5% / 0.24);
+  background: var(--panel-slot);
+  border: 1px solid var(--panel-dark-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
   color: hsl(0 0% 100%);
   cursor: default;
   display: flex;
   flex-direction: column;
-  height: 118px;
+  gap: 8px;
+  height: 132px;
   justify-content: center;
-  padding: 14px;
+  padding: 14px 12px;
   position: relative;
-  transition: filter 140ms ease, opacity 140ms ease, transform 140ms ease;
-  width: 118px;
+  transition: box-shadow 140ms ease, transform 140ms ease, background 140ms ease;
+  width: 112px;
 }
 
 .undo-item.available {
@@ -37,75 +65,80 @@
 }
 
 .undo-item.empty {
-  background: hsl(204 78% 20% / 0.82);
-  box-shadow:
-    inset 0 1px 0 hsl(0 0% 100% / 0.1),
-    0 8px 14px hsl(204 88.1% 16.5% / 0.18);
+  background: var(--panel-slot-empty);
+  border-style: dashed;
+  box-shadow: none;
   cursor: default;
+  opacity: 0.7;
 }
 
 .undo-item.available:hover:not(:disabled) {
-  filter: brightness(1.08);
-  transform: translateY(-1px);
+  background: var(--panel-slot-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .undo-item.active {
-  filter: brightness(1.12);
-  outline: 3px solid hsl(197 100% 82.9% / 0.92);
-  outline-offset: 2px;
+  background: var(--panel-slot-hover);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px hsl(202 89% 53% / 0.32), var(--shadow-md);
 }
 
 .undo-item:disabled {
-  opacity: 0.72;
+  opacity: 0.55;
 }
 
 .undo-item.empty:disabled {
-  opacity: 1;
+  opacity: 0.7;
 }
 
 .undo-item-icon {
   align-items: center;
-  background: linear-gradient(180deg, var(--blue-100), var(--blue-300));
-  border-radius: 10px;
-  color: var(--blue-850);
+  background: linear-gradient(180deg, var(--blue-300), var(--blue-500));
+  border-radius: var(--radius-sm);
+  color: hsl(0 0% 100%);
   display: flex;
-  height: 82px;
+  height: 64px;
   justify-content: center;
-  width: 82px;
+  width: 64px;
 }
 
 .undo-item-icon svg {
-  height: 40px;
-  width: 40px;
+  height: 34px;
+  width: 34px;
 }
 
-.undo-item.available .undo-item-icon {
-  color: var(--blue-950);
+.undo-item-label {
+  color: hsl(0 0% 100%);
+  font-size: 0.85rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .undo-item-count {
   align-items: center;
-  background: var(--blue-950);
-  border: 2px solid var(--blue-100);
-  border-radius: 999px;
+  background: var(--accent);
+  border: 2px solid hsl(0 0% 100%);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-sm);
   color: hsl(0 0% 100%);
   display: flex;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 900;
-  height: 28px;
+  height: 26px;
   justify-content: center;
+  min-width: 26px;
+  padding: 0 6px;
   position: absolute;
-  right: 9px;
-  top: 9px;
-  width: 28px;
+  right: 8px;
+  top: 8px;
 }
 
 .undo-item-tooltip {
-  background: hsl(204 88.1% 16.5% / 0.98);
-  border: 1px solid hsl(0 0% 100% / 0.18);
-  border-radius: 8px;
+  background: var(--text-strong);
+  border-radius: var(--radius-sm);
   bottom: calc(100% + 12px);
-  box-shadow: 0 12px 22px hsl(204 88.1% 16.5% / 0.34);
+  box-shadow: var(--shadow-lg);
   color: hsl(0 0% 100%);
   display: grid;
   gap: 5px;
@@ -123,7 +156,7 @@
 }
 
 .undo-item-tooltip::after {
-  background: hsl(204 88.1% 16.5% / 0.98);
+  background: var(--text-strong);
   bottom: -5px;
   content: "";
   height: 10px;
@@ -139,7 +172,7 @@
 }
 
 .undo-item-tooltip span {
-  color: var(--blue-100);
+  color: var(--blue-300);
   font-size: 0.78rem;
   font-weight: 700;
   line-height: 1.35;
@@ -155,10 +188,15 @@
 @media (max-width: 1520px) {
   .undo-items {
     grid-column: auto;
-    justify-content: center;
+    grid-row: auto;
+    align-self: auto;
     justify-self: stretch;
     order: -1;
     width: 100%;
+  }
+
+  .undo-item-row {
+    justify-content: center;
   }
 
   .undo-item-tooltip {

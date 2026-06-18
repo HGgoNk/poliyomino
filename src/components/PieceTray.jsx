@@ -3,6 +3,7 @@ import "../styles/PieceTray.css";
 
 function PieceTray({
   disabled,
+  onEmptySlotClick,
   onPieceSelect,
   selectedId,
   tray
@@ -19,7 +20,11 @@ function PieceTray({
             selected={selectedId === piece.uid}
           />
         ) : (
-          <div className="piece-preview empty" key={`empty-${index}`} />
+          <div
+            className="piece-preview empty"
+            key={`empty-${index}`}
+            onMouseDown={selectedId ? onEmptySlotClick : undefined}
+          />
         )
       )}
     </div>

@@ -22,12 +22,12 @@ export function createPieceInstance(piece) {
   };
 }
 
-export function randomPieceTemplate() {
-  return PIECES[Math.floor(Math.random() * PIECES.length)];
+export function randomPieceTemplate(deck = PIECES) {
+  return deck[Math.floor(Math.random() * deck.length)];
 }
 
-export function randomPiece() {
-  return createPieceInstance(randomPieceTemplate());
+export function randomPiece(deck = PIECES) {
+  return createPieceInstance(randomPieceTemplate(deck));
 }
 
 export function pieceBounds(piece) {

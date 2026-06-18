@@ -2,10 +2,13 @@ import { SIZE } from "../constants/gameData.js";
 import { clearLines, cloneBoard } from "./boardUtils.js";
 
 export function canPlace(board, piece, row, col) {
+  // Ghost blocks may overlap existing blocks; they only need to stay on the board.
+  const allowOverlap = piece.special === "ghost";
   return piece.cells.every(([dr, dc]) => {
     const nextRow = row + dr;
     const nextCol = col + dc;
-    return nextRow >= 0 && nextRow < SIZE && nextCol >= 0 && nextCol < SIZE && !board[nextRow][nextCol];
+    if (nextRow < 0 || nextRow >= SIZE || nextCol < 0 || nextCol >= SIZE) return false;
+    return allowOverlap || !board[nextRow][nextCol];
   });
 }
 
@@ -29,11 +32,16 @@ export function hasMove(board, pieces) {
 
 export function placePiece(board, piece, row, col) {
   const next = cloneBoard(board);
+  // Cells that already held a block before this piece landed on them (ghost overlap).
+  const overlappedCells = [];
   piece.cells.forEach(([dr, dc]) => {
-    next[row + dr][col + dc] = piece.color;
+    const nextRow = row + dr;
+    const nextCol = col + dc;
+    if (board[nextRow][nextCol]) overlappedCells.push(`${nextRow}-${nextCol}`);
+    next[nextRow][nextCol] = piece.color;
   });
   const result = clearLines(next);
-  return { ...result, placedBoard: next };
+  return { ...result, placedBoard: next, overlappedCells };
 }
 
 const ADJACENT_DELTAS = [

@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./styles/App.css";
 import "./styles/StartScreen.css";
-import { Play } from "lucide-react";
+import { Home, Layers, Play, RotateCcw, Settings } from "lucide-react";
+import BlockRewardModal from "./components/BlockRewardModal.jsx";
 import Board from "./components/Board.jsx";
+import DeckModal from "./components/DeckModal.jsx";
 import GameOver from "./components/GameOver.jsx";
 import PieceShape from "./components/PieceShape.jsx";
 import PieceTray from "./components/PieceTray.jsx";
 import RerollModal from "./components/RerollModal.jsx";
 import ScoreBoard from "./components/ScoreBoard.jsx";
-import { EMPTY_BOARD, SIZE } from "./constants/gameData.js";
+import { DEFAULT_DECK, EMPTY_BOARD, getDeckPieces, isValidDeck, SIZE } from "./constants/gameData.js";
 import {
   AugmentChoiceModal,
   AugmentPanel,
@@ -18,11 +20,16 @@ import {
   getAugmentLevel,
   getNextAugmentStateAfterPlacement,
   getSavedAugmentState,
+  getTotalAugmentLevels,
   rollSpreadClear,
   rollSpreadFill,
   shouldOfferAugmentChoice
-} from "./features/augments.jsx";
+} from "./features/augments.jsx"; 
+import { GHOST_AUGMENT_INTERVAL, resolveGhostClears } from "./features/ghosts.js";
 import { getSavedItemState, ItemSlots, useItemSystem } from "./features/items.jsx";
+import { applyBombClear, getBombArea } from "./features/bombBlocks.js";
+import { applyLineClear } from "./features/lineBlocks.js";
+import { createRandomSpecialTemplate, isValidSpecialPiece } from "./features/specials.js";
 import useBestScore from "./hooks/useBestScore.js";
 import { applySpreadClear, clearLines, cloneBoard, isBoardEmpty } from "./utils/boardUtils.js";
 import { createPieceInstance } from "./utils/pieceUtils.js";
@@ -90,7 +97,14 @@ function loadSavedGame() {
     return {
       augmentState: getSavedAugmentState(savedGame),
       board: cloneBoard(savedGame.board),
+      deck: isValidDeck(savedGame.deck) ? savedGame.deck : DEFAULT_DECK,
+      ghostCells: Array.isArray(savedGame.ghostCells)
+        ? savedGame.ghostCells.filter((key) => typeof key === "string")
+        : [],
       score: Number.isFinite(savedGame.score) ? savedGame.score : 0,
+      specialPieces: Array.isArray(savedGame.specialPieces)
+        ? savedGame.specialPieces.filter(isValidSpecialPiece)
+        : [],
       tray: savedGame.tray,
       ...getSavedItemState(savedGame, { isValidBoard, isValidTray })
     };
@@ -130,7 +144,21 @@ function getClosestPlacement(board, piece, targetCell) {
 function App() {
   const [initialGame] = useState(loadSavedGame);
   const [board, setBoard] = useState(() => initialGame?.board || cloneBoard(EMPTY_BOARD));
-  const [tray, setTray] = useState(() => initialGame?.tray || nextTray(initialGame?.board || EMPTY_BOARD));
+  // The deck is the set of block ids that may appear in the tray. Defaults to every block.
+  const [deck, setDeck] = useState(() => initialGame?.deck || DEFAULT_DECK);
+  // Special blocks (e.g. ghosts) earned this game, added to the deck until reset.
+  const [specialPieces, setSpecialPieces] = useState(() => initialGame?.specialPieces || []);
+  // Board cells overlapped by a ghost, awaiting a clear to award the doubled score.
+  const [ghostCells, setGhostCells] = useState(() => new Set(initialGame?.ghostCells || []));
+  const deckPieces = useMemo(() => [...getDeckPieces(deck), ...specialPieces], [deck, specialPieces]);
+  const [tray, setTray] = useState(
+    () =>
+      initialGame?.tray ||
+      nextTray(initialGame?.board || EMPTY_BOARD, [
+        ...getDeckPieces(initialGame?.deck || DEFAULT_DECK),
+        ...(initialGame?.specialPieces || [])
+      ])
+  );
   const [selectedId, setSelectedId] = useState(null);
   const [cursorPiece, setCursorPiece] = useState(null);
   const [anchorCell, setAnchorCell] = useState(null);
@@ -141,6 +169,10 @@ function App() {
   const [score, setScore] = useState(() => initialGame?.score || 0);
   const [augmentState, setAugmentState] = useState(() => initialGame?.augmentState || createInitialAugmentState());
   const [augmentChoiceOpen, setAugmentChoiceOpen] = useState(false);
+  // The special block just earned, shown in the reward modal until acknowledged.
+  const [rewardPiece, setRewardPiece] = useState(null);
+  const [deckModalOpen, setDeckModalOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [gamePhase, setGamePhase] = useState("start");
   const boardRef = useRef(null);
   const clearTimerRef = useRef(null);
@@ -169,12 +201,15 @@ function App() {
     clearHighlightMs: CLEAR_HIGHLIGHT_MS,
     clearSelection,
     clearTimerRef,
+    deckPieces,
+    ghostCells,
     initialGame,
     isClearing,
     score,
     setAugmentState,
     setBoard,
     setClearingCells,
+    setGhostCells,
     setScore,
     setTray,
     tray
@@ -204,6 +239,23 @@ function App() {
   const previewClearingCells = useMemo(() => {
     if (!selectedPiece || !closestPlacementCell || invalidPreview) return new Set();
 
+    // Line block: preview the whole row + column cross it will clear.
+    if (selectedPiece.special === "line") {
+      const cross = new Set();
+      for (let index = 0; index < SIZE; index += 1) {
+        cross.add(`${closestPlacementCell.row}-${index}`);
+        cross.add(`${index}-${closestPlacementCell.col}`);
+      }
+      return cross;
+    }
+
+    // Bomb block: preview the 3x3 area it will destroy.
+    if (selectedPiece.special === "bomb") {
+      return new Set(
+        getBombArea(closestPlacementCell.row, closestPlacementCell.col).map(([r, c]) => `${r}-${c}`)
+      );
+    }
+
     const result = placePiece(board, selectedPiece, closestPlacementCell.row, closestPlacementCell.col);
     return new Set(result.clearedCells);
   }, [board, closestPlacementCell, invalidPreview, selectedPiece]);
@@ -218,9 +270,12 @@ function App() {
         board,
         cellActionMode,
         cellActionsRemaining,
+        deck,
+        ghostCells: [...ghostCells],
         itemAwardLevel,
         itemSlots,
         score,
+        specialPieces,
         tray,
         undoSnapshot
       })
@@ -231,21 +286,24 @@ function App() {
     board,
     cellActionMode,
     cellActionsRemaining,
+    deck,
+    ghostCells,
     isPlaying,
     itemAwardLevel,
     itemSlots,
+    specialPieces,
     score,
     tray,
     undoSnapshot
   ]);
 
   useEffect(() => {
-    if (!isPlaying || gameOver || isClearing || augmentChoiceOpen) return;
+    if (!isPlaying || gameOver || isClearing || augmentChoiceOpen || rewardPiece) return;
     if (!shouldOfferAugmentChoice(augmentState, score)) return;
 
     clearSelection();
     setAugmentChoiceOpen(true);
-  }, [augmentChoiceOpen, augmentState, gameOver, isClearing, isPlaying, score]);
+  }, [augmentChoiceOpen, augmentState, gameOver, isClearing, isPlaying, rewardPiece, score]);
 
   useEffect(() => {
     if (!isPlaying) return undefined;
@@ -310,18 +368,21 @@ function App() {
     clearTimeout(clearTimerRef.current);
     const nextBoard = cloneBoard(EMPTY_BOARD);
     setBoard(nextBoard);
-    setTray(nextTray(nextBoard));
+    // Special blocks are per-game: a new game starts with the base deck only.
+    setSpecialPieces([]);
+    setGhostCells(new Set());
+    setTray(nextTray(nextBoard, getDeckPieces(deck)));
     clearSelection();
     setClearingCells(new Set());
     setScore(0);
     setAugmentState(createInitialAugmentState());
     setAugmentChoiceOpen(false);
+    setRewardPiece(null);
     resetItems();
   }
 
   function startGame() {
     resetGame();
-    setAugmentChoiceOpen(true);
     setGamePhase("playing");
   }
 
@@ -329,23 +390,47 @@ function App() {
     setGamePhase("playing");
   }
 
+  function restartFromSettings() {
+    setSettingsOpen(false);
+    startGame();
+  }
+
+  function goHomeFromSettings() {
+    setSettingsOpen(false);
+    clearSelection();
+    setGamePhase("start");
+  }
+
   function placePieceAt(piece, row, col) {
     if (augmentChoiceOpen || isClearing || !piece || !canPlace(board, piece, row, col)) return;
 
     let result = placePiece(board, piece, row, col);
-    let spreadFilledCount = 0;
+    // Cells where a ghost block was dropped onto an existing block; these score double
+    // when they are eventually cleared.
+    const newOverlapCells = piece.special === "ghost" ? result.overlappedCells : [];
+    let extraCells = 0;
 
-    // Spread-fill augment: a chance to fill nearby empty cells, which may complete lines.
-    const spreadCount = rollSpreadFill(augmentState);
-    if (spreadCount > 0) {
-      const spreadCells = getSpreadFillCells(result.placedBoard, piece, row, col, spreadCount);
-      if (spreadCells.length) {
-        spreadFilledCount = spreadCells.length;
-        const spreadBoard = cloneBoard(result.placedBoard);
-        spreadCells.forEach(({ row: spreadRow, col: spreadCol }) => {
-          spreadBoard[spreadRow][spreadCol] = piece.color;
-        });
-        result = { ...clearLines(spreadBoard), placedBoard: spreadBoard };
+    if (piece.special === "line") {
+      // Line block: clear the entire row and column it lands on.
+      result = { ...applyLineClear(result.placedBoard, row, col), placedBoard: result.placedBoard };
+    } else if (piece.special === "bomb") {
+      // Bomb block: destroy the surrounding 3x3 area; each destroyed cell scores.
+      const bombResult = applyBombClear(result.placedBoard, row, col);
+      extraCells = bombResult.clearedCells.length;
+      result = { ...bombResult, placedBoard: result.placedBoard };
+    } else {
+      // Spread-fill augment: a chance to fill nearby empty cells, which may complete lines.
+      const spreadCount = rollSpreadFill(augmentState);
+      if (spreadCount > 0) {
+        const spreadCells = getSpreadFillCells(result.placedBoard, piece, row, col, spreadCount);
+        if (spreadCells.length) {
+          extraCells = spreadCells.length;
+          const spreadBoard = cloneBoard(result.placedBoard);
+          spreadCells.forEach(({ row: spreadRow, col: spreadCol }) => {
+            spreadBoard[spreadRow][spreadCol] = piece.color;
+          });
+          result = { ...clearLines(spreadBoard), placedBoard: spreadBoard };
+        }
       }
     }
 
@@ -358,16 +443,20 @@ function App() {
       cleared: result.cleared,
       piece,
       allClear: isBoardEmpty(result.board),
-      extraCells: spreadFilledCount
+      extraCells
     });
+    // Award doubled score for any ghost-overlapped cells caught in this clear, and keep
+    // the rest marked for a future clear.
+    const ghostResult = resolveGhostClears(ghostCells, newOverlapCells, nextClearingCells);
 
     setBoard(nextClearingCells.size ? result.placedBoard : result.board);
     setClearingCells(nextClearingCells);
-    setScore((current) => current + scoreGain.total);
+    setScore((current) => current + scoreGain.total + ghostResult.bonus);
+    setGhostCells(ghostResult.ghostCells);
 
     const updatedTray = tray.map((trayPiece) => (trayPiece?.uid === piece.uid ? null : trayPiece));
     const trayCompleted = updatedTray.every((trayPiece) => !trayPiece);
-    const refreshedTray = trayCompleted ? nextTray(result.board) : updatedTray;
+    const refreshedTray = trayCompleted ? nextTray(result.board, deckPieces) : updatedTray;
     saveUndoSnapshot();
     setAugmentState((current) =>
       getNextAugmentStateAfterPlacement(current, {
@@ -419,6 +508,14 @@ function App() {
   }
 
   function handleAugmentChoose(augmentId) {
+    // Each choice raises the total augment level by exactly one, so the running level
+    // total doubles as the number of choices made. Earn a ghost block every interval.
+    const choicesMade = getTotalAugmentLevels(augmentState) + 1;
+    if (choicesMade % GHOST_AUGMENT_INTERVAL === 0) {
+      const special = createRandomSpecialTemplate();
+      setSpecialPieces((current) => [...current, special]);
+      setRewardPiece(special);
+    }
     setAugmentState((current) => chooseAugment(current, augmentId, score));
     setAugmentChoiceOpen(false);
   }
@@ -472,6 +569,32 @@ function App() {
 
   return (
     <main className={`app-shell ${selectedPiece ? "has-cursor-piece" : ""} ${cellActionsRemaining > 0 ? "has-cell-mode" : ""}`}>
+      <div className="game-settings">
+        <button
+          aria-expanded={settingsOpen}
+          aria-label="설정"
+          className="game-settings-button"
+          onClick={() => setSettingsOpen((open) => !open)}
+          type="button"
+        >
+          <Settings size={22} aria-hidden="true" />
+        </button>
+      </div>
+      {settingsOpen && (
+        <div className="game-settings-backdrop" role="dialog" aria-modal="true" aria-labelledby="settings-title" onClick={() => setSettingsOpen(false)}>
+          <section className="game-settings-menu" onClick={(event) => event.stopPropagation()}>
+            <strong id="settings-title" className="game-settings-title">설정</strong>
+            <button className="game-settings-menu-button" onClick={restartFromSettings} type="button">
+              <RotateCcw size={18} aria-hidden="true" />
+              <span>다시하기</span>
+            </button>
+            <button className="game-settings-menu-button" onClick={goHomeFromSettings} type="button">
+              <Home size={18} aria-hidden="true" />
+              <span>홈</span>
+            </button>
+          </section>
+        </div>
+      )}
       <section className="game-area">
         <ScoreBoard best={best} score={score} />
         <div className="board-layout">
@@ -491,6 +614,7 @@ function App() {
             />
             <PieceTray
               disabled={augmentChoiceOpen || gameOver || isClearing}
+              onEmptySlotClick={clearSelection}
               onPieceSelect={handlePieceSelect}
               selectedId={selectedId}
               tray={tray}
@@ -504,6 +628,15 @@ function App() {
             onItemClick={handleItemClick}
             undoSnapshot={undoSnapshot}
           />
+          <button
+            aria-label="현재 덱 보기"
+            className="deck-view-button"
+            onClick={() => setDeckModalOpen(true)}
+            type="button"
+          >
+            <Layers size={22} aria-hidden="true" />
+            <span>덱</span>
+          </button>
         </div>
         {cursorPiece && cursorPoint && cursorAnchorOffset && (
           <div
@@ -526,9 +659,12 @@ function App() {
       {augmentChoiceOpen && (
         <AugmentChoiceModal augmentState={augmentState} onChoose={handleAugmentChoose} score={score} />
       )}
+      {rewardPiece && <BlockRewardModal onConfirm={() => setRewardPiece(null)} piece={rewardPiece} />}
+      {deckModalOpen && <DeckModal deckPieces={deckPieces} onClose={() => setDeckModalOpen(false)} />}
       {rerollModalSlot !== null && (
         <RerollModal
           board={board}
+          deckPieces={deckPieces}
           level={getAugmentLevel(augmentState, "reroll-power")}
           onApply={applyReroll}
           onCancel={cancelReroll}

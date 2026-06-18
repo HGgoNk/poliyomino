@@ -4,6 +4,7 @@ import { pieceBounds } from "../utils/pieceUtils.js";
 
 function PieceShape({ piece, cellSize = 26, cellGap = 3, className = "" }) {
   const bounds = pieceBounds(piece);
+  const filledColorClass = colorClass[piece.color] || colorClass.cyan;
 
   return (
     <span
@@ -21,7 +22,7 @@ function PieceShape({ piece, cellSize = 26, cellGap = 3, className = "" }) {
         const filled = piece.cells.some(([r, c]) => r === row && c === col);
         return (
           <span
-            className={`mini-cell ${filled ? colorClass[piece.color] : ""}`}
+            className={`mini-cell ${filled ? filledColorClass : ""}`}
             data-col={col}
             data-filled={filled ? "true" : "false"}
             data-row={row}

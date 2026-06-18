@@ -36,6 +36,24 @@ export const PIECES = [
   { id: "duo-v", cells: [[0, 0], [1, 0]] }
 ];
 
+// The default deck contains every block defined above. A deck is just the list of
+// piece ids the player currently owns; only these blocks can appear in the tray.
+export const DEFAULT_DECK = PIECES.map((piece) => piece.id);
+
+const PIECE_BY_ID = new Map(PIECES.map((piece) => [piece.id, piece]));
+
+// Resolve a deck (list of piece ids) into its matching piece templates, dropping any
+// unknown ids. Falls back to the full catalog when the deck is empty or invalid.
+export function getDeckPieces(deckIds) {
+  if (!Array.isArray(deckIds)) return PIECES;
+  const pieces = deckIds.map((id) => PIECE_BY_ID.get(id)).filter(Boolean);
+  return pieces.length ? pieces : PIECES;
+}
+
+export function isValidDeck(deckIds) {
+  return Array.isArray(deckIds) && deckIds.length > 0 && deckIds.every((id) => PIECE_BY_ID.has(id));
+}
+
 export const PIECE_COLORS = ["cyan", "lime", "amber", "rose", "violet", "blue", "teal", "orange", "pink", "green", "indigo"];
 
 export const colorClass = {
@@ -49,5 +67,8 @@ export const colorClass = {
   orange: "piece-orange",
   pink: "piece-pink",
   green: "piece-green",
-  indigo: "piece-indigo"
+  indigo: "piece-indigo",
+  ghost: "piece-ghost",
+  line: "piece-line",
+  bomb: "piece-bomb"
 };
