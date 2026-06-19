@@ -409,9 +409,16 @@ export function AugmentChoiceModal({ augmentState, onChoose, score }: AugmentCho
           {choices.map(({ Icon, id, label, summary }) => {
             const currentLevel = getAugmentLevel(augmentState, id);
             const nextLevel = currentLevel + 1;
+            const isNewAugment = currentLevel === 0;
 
             return (
-              <button className="augment-choice-card" key={id} onClick={() => onChoose(id)} type="button">
+              <button
+                className={`augment-choice-card ${isNewAugment ? "new" : ""}`}
+                key={id}
+                onClick={() => onChoose(id)}
+                type="button"
+              >
+                {isNewAugment && <span className="augment-choice-new">new</span>}
                 <span className="augment-choice-icon">
                   <Icon size={48} aria-hidden="true" />
                 </span>
