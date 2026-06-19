@@ -86,10 +86,10 @@
 
 .augment-detail-panel {
   align-items: center;
-  background: var(--surface-card);
-  border: 1px solid var(--surface-card-border);
+  background: var(--modal-surface);
+  border: 1px solid var(--modal-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--modal-shadow-lg);
   display: grid;
   gap: 18px;
   grid-template-columns: 96px minmax(0, 1fr);
@@ -116,21 +116,21 @@
 }
 
 .augment-detail-copy strong {
-  color: var(--text-strong);
+  color: var(--modal-text);
   font-size: 1.55rem;
   font-weight: 900;
   line-height: 1;
 }
 
 .augment-detail-copy span {
-  color: var(--accent-strong);
+  color: var(--blue-300);
   font-size: 0.82rem;
   font-weight: 900;
   line-height: 1;
 }
 
 .augment-detail-copy p {
-  color: var(--text-body);
+  color: var(--modal-text-body);
   font-size: 1rem;
   font-weight: 700;
   line-height: 1.45;

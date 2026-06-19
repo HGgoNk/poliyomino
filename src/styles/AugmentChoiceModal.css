@@ -49,11 +49,11 @@
 
 .augment-choice-card {
   align-items: center;
-  background: var(--surface-card);
-  border: 1px solid var(--surface-card-border);
+  background: var(--modal-surface);
+  border: 1px solid var(--modal-border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  color: var(--text-strong);
+  box-shadow: var(--modal-shadow-lg);
+  color: var(--modal-text);
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -61,16 +61,48 @@
   min-height: 0;
   padding: 24px 22px;
   aspect-ratio: 9 / 16;
+  position: relative;
   text-align: center;
   transition: box-shadow 140ms ease, transform 140ms ease, border-color 140ms ease;
+}
+
+.augment-choice-card.new {
+  border-color: hsl(54 100% 55%);
+  box-shadow:
+    0 0 0 2px hsl(54 100% 55% / 0.42),
+    0 0 24px hsl(54 100% 58% / 0.48),
+    var(--shadow-lg);
 }
 
 .augment-choice-card:hover,
 .augment-choice-card:focus-visible {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px hsl(202 89% 53% / 0.3), var(--shadow-lg);
+  box-shadow: 0 0 0 3px hsl(202 89% 53% / 0.3), var(--modal-shadow-lg);
   outline: none;
   transform: translateY(-3px);
+}
+
+.augment-choice-card.new:hover,
+.augment-choice-card.new:focus-visible {
+  border-color: hsl(54 100% 55%);
+  box-shadow:
+    0 0 0 3px hsl(54 100% 55% / 0.48),
+    0 0 32px hsl(54 100% 58% / 0.62),
+    var(--shadow-lg);
+}
+
+.augment-choice-new {
+  color: hsl(54 100% 50%);
+  font-size: 0.86rem;
+  font-weight: 900;
+  line-height: 1;
+  position: absolute;
+  right: 18px;
+  text-shadow:
+    0 0 8px hsl(54 100% 58% / 0.95),
+    0 0 16px hsl(54 100% 58% / 0.62);
+  text-transform: uppercase;
+  top: 16px;
 }
 
 .augment-choice-icon {
@@ -85,14 +117,20 @@
 }
 
 .augment-choice-title {
-  color: var(--text-strong);
+  color: var(--modal-text);
   font-size: 1.18rem;
   font-weight: 900;
   line-height: 1.1;
 }
 
+.augment-choice-card.new .augment-choice-title {
+  color: hsl(54 100% 44%);
+  font-weight: 900;
+  text-shadow: 0 0 10px hsl(54 100% 58% / 0.45);
+}
+
 .augment-choice-summary {
-  color: var(--text-muted);
+  color: var(--modal-text-muted);
   font-size: 0.88rem;
   font-weight: 700;
   line-height: 1.35;

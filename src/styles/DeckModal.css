@@ -11,11 +11,11 @@
 }
 
 .deck-panel {
-  background: var(--surface-card);
-  border: 1px solid var(--surface-card-border);
+  background: var(--modal-bg);
+  border: 1px solid var(--modal-border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  color: var(--text-strong);
+  box-shadow: var(--modal-shadow-lg);
+  color: var(--modal-text);
   display: grid;
   gap: 18px;
   max-height: calc(100vh - 48px);
@@ -31,7 +31,7 @@
 }
 
 .deck-heading span {
-  color: var(--accent-strong);
+  color: var(--blue-300);
   font-size: 0.8rem;
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -39,7 +39,7 @@
 }
 
 .deck-heading strong {
-  color: var(--text-strong);
+  color: var(--modal-text);
   display: block;
   font-size: clamp(1.4rem, 4vw, 1.8rem);
   font-weight: 900;
@@ -48,10 +48,10 @@
 
 .deck-close {
   align-items: center;
-  background: var(--surface-card-soft);
-  border: 1px solid var(--surface-card-border);
+  background: var(--modal-surface);
+  border: 1px solid var(--modal-border);
   border-radius: var(--radius-pill);
-  color: var(--text-body);
+  color: var(--modal-text-body);
   cursor: pointer;
   display: flex;
   height: 36px;
@@ -61,7 +61,7 @@
 }
 
 .deck-close:hover {
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--modal-shadow-sm);
   transform: translateY(-1px);
 }
 
@@ -71,7 +71,7 @@
 }
 
 .deck-section-title {
-  color: var(--text-muted);
+  color: var(--modal-text-muted);
   font-size: 0.9rem;
   font-weight: 800;
   margin: 0;
@@ -85,11 +85,11 @@
 
 .deck-tile {
   align-items: center;
-  background: var(--surface-card-soft);
-  border: 1px solid var(--surface-card-border);
+  background: var(--modal-surface-soft);
+  border: 1px solid var(--modal-border);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  color: var(--text-strong);
+  box-shadow: var(--modal-shadow-sm);
+  color: var(--modal-text);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -99,8 +99,8 @@
 }
 
 .deck-tile.special {
-  background: hsl(262 80% 96%);
-  border-color: hsl(262 70% 70%);
+  background: hsl(262 40% 28%);
+  border-color: hsl(262 50% 48%);
 }
 
 .deck-tile-label {

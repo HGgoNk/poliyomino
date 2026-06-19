@@ -11,11 +11,11 @@
 }
 
 .reroll-panel {
-  background: var(--surface-card);
-  border: 1px solid var(--surface-card-border);
+  background: var(--modal-bg);
+  border: 1px solid var(--modal-border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  color: var(--text-strong);
+  box-shadow: var(--modal-shadow-lg);
+  color: var(--modal-text);
   display: grid;
   gap: 18px;
   justify-items: center;
@@ -33,7 +33,7 @@
 }
 
 .reroll-heading span {
-  color: var(--accent-strong);
+  color: var(--blue-300);
   font-size: 0.8rem;
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -41,14 +41,14 @@
 }
 
 .reroll-heading strong {
-  color: var(--text-strong);
+  color: var(--modal-text);
   font-size: clamp(1.6rem, 4vw, 2.2rem);
   font-weight: 900;
   line-height: 1;
 }
 
 .reroll-hint {
-  color: var(--text-muted);
+  color: var(--modal-text-muted);
   font-size: 0.95rem;
   font-weight: 800;
   margin: 0;
@@ -72,10 +72,10 @@
 
 .reroll-piece {
   align-items: center;
-  background: var(--surface-card-soft);
-  border: 2px solid var(--surface-card-border);
+  background: var(--modal-surface-soft);
+  border: 2px solid var(--modal-border);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--modal-shadow-sm);
   cursor: pointer;
   display: flex;
   justify-content: center;
@@ -115,9 +115,9 @@
 }
 
 .reroll-cancel {
-  background: var(--surface-card-soft);
-  border: 1px solid var(--surface-card-border);
-  color: var(--text-body);
+  background: var(--modal-surface);
+  border: 1px solid var(--modal-border);
+  color: var(--modal-text-body);
 }
 
 .reroll-confirm {
