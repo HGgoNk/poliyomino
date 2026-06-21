@@ -1,4 +1,4 @@
-import { applySpreadClear, clearLines, cloneBoard, isBoardEmpty } from "../utils/boardUtils";
+import { applySpreadClear, clearLines, cloneBoard, countAdjacentBlocks, isBoardEmpty } from "../utils/boardUtils";
 import { getSpreadFillCells, getSurroundingEmptyCells, placePiece } from "../utils/placement";
 import { getAugmentedScore, rollSpreadClear, rollSpreadFill } from "./augments";
 import { resolveBombClears } from "./bombBlocks";
@@ -109,9 +109,11 @@ export function resolvePlacement({
   const boardFillRatio = totalCells > 0 ? filledCells / totalCells : 0;
 
   const clearingCells = new Set(result.clearedCells);
+  const crackCount = countAdjacentBlocks(result.placedBoard, result.clearedRows, result.clearedCols);
   const scoreBreakdown = getAugmentedScore({
     augmentState, cleared: result.cleared, piece,
-    allClear: isBoardEmpty(result.board), extraCells, boardFillRatio
+    allClear: isBoardEmpty(result.board), extraCells, boardFillRatio,
+    clearedCellCount: result.clearedCells.length, crackCount
   });
   const ghostResult = resolveGhostClears(ghostCells, newOverlapCells, clearingCells);
   const goldenResult = resolveGoldenClears(goldenCells, clearingCells, scoreBreakdown.clearScore);

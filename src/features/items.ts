@@ -17,6 +17,18 @@ import type {
 
 // One item is awarded each time the combo crosses a multiple of this number.
 export const ITEM_COMBO_STEP = 10;
+// item-discount: each level lowers the combo interval by this, down to ITEM_COMBO_STEP_MIN.
+export const ITEM_DISCOUNT_PER_LEVEL = 2;
+export const ITEM_COMBO_STEP_MIN = 2;
+// item-gain-score / item-use-score: points per level on item gain / use.
+export const ITEM_GAIN_SCORE = 20;
+export const ITEM_USE_SCORE = 15;
+
+// Combo interval at which items are awarded, lowered by the item-discount augment.
+export function getItemComboStep(augmentState: AugmentState): number {
+  const level = getAugmentLevel(augmentState, "item-discount");
+  return Math.max(ITEM_COMBO_STEP_MIN, ITEM_COMBO_STEP - level * ITEM_DISCOUNT_PER_LEVEL);
+}
 export const MAX_UNDO_ITEMS = 3;
 export const MAX_REROLL_ITEMS = 3;
 export const MAX_ITEM_SLOTS = 3;
@@ -191,10 +203,12 @@ export function useItemSystem({
     comboMilestoneRef.current = combo;
     if (combo <= prevCombo) return; // combo reset or unchanged — nothing to award
 
-    const itemsEarned =
-      Math.floor(combo / ITEM_COMBO_STEP) - Math.floor(prevCombo / ITEM_COMBO_STEP);
+    // item-discount lowers the interval; both terms use the current step for consistency.
+    const step = getItemComboStep(augmentState);
+    const itemsEarned = Math.floor(combo / step) - Math.floor(prevCombo / step);
     if (itemsEarned <= 0) return;
 
+    let placed = 0;
     setItemSlots((current) => {
       const nextSlots = [...current] as ItemSlots;
       let itemsToAward = itemsEarned;
@@ -205,12 +219,17 @@ export function useItemSystem({
         if (!nextSlots[index]) {
           nextSlots[index] = getRandomItemType();
           itemsToAward -= 1;
+          placed += 1;
         }
       }
 
       return nextSlots;
     });
-  }, [augmentState.combo]);
+
+    // item-gain-score: points for each item that actually landed in a slot.
+    const gainLevel = getAugmentLevel(augmentState, "item-gain-score");
+    if (gainLevel > 0 && placed > 0) setScore((current) => current + placed * gainLevel * ITEM_GAIN_SCORE);
+  }, [augmentState, setScore]);
 
   function clearItemSlot(slotIndex: number) {
     setItemSlots((current) =>
@@ -241,6 +260,15 @@ export function useItemSystem({
     });
   }
 
+  // Shared side effects when any item is spent: 사용 보너스 점수 + 아이템 연계 플래그.
+  function onItemUsed() {
+    const useLevel = getAugmentLevel(augmentState, "item-use-score");
+    if (useLevel > 0) setScore((current) => current + useLevel * ITEM_USE_SCORE);
+    if (getAugmentLevel(augmentState, "item-chain") > 0) {
+      setAugmentState((current) => ({ ...current, itemChainPending: true }));
+    }
+  }
+
   function handleUndo(slotIndex: number) {
     if (isClearing || !undoSnapshot || itemSlots[slotIndex] !== "undo") return;
 
@@ -257,6 +285,7 @@ export function useItemSystem({
     clearItemSlot(slotIndex);
     setUndoSnapshot(null);
     clearSelection();
+    onItemUsed();
   }
 
   // True when an undo item could be auto-spent (an undo item is held and a snapshot exists).
@@ -279,6 +308,7 @@ export function useItemSystem({
       setTray(rerollOnePiece(board, tray, deckPieces));
       clearItemSlot(slotIndex);
       clearSelection();
+      onItemUsed();
       return;
     }
 
@@ -291,6 +321,7 @@ export function useItemSystem({
     setTray(nextTrayPieces);
     if (rerollModalSlot !== null) {
       clearItemSlot(rerollModalSlot);
+      onItemUsed();
     }
     setRerollModalSlot(null);
   }
@@ -307,6 +338,7 @@ export function useItemSystem({
 
     clearSelection();
     clearItemSlot(slotIndex);
+    onItemUsed();
     setGravityAnimating(true);
 
     // Step through the fall/clear frames, then settle the board and relocate the marks.

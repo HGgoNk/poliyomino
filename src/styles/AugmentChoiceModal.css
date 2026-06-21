@@ -105,6 +105,25 @@
   top: 16px;
 }
 
+.augment-choice-type {
+  align-self: center;
+  border-radius: 999px;
+  color: hsl(0 0% 100%);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+/* Category accent colors. */
+.augment-choice-type.type-combo { background: hsl(18 90% 52%); }
+.augment-choice-type.type-clear { background: hsl(280 70% 56%); }
+.augment-choice-type.type-multiline { background: hsl(202 89% 48%); }
+.augment-choice-type.type-placement { background: hsl(150 65% 40%); }
+.augment-choice-type.type-item { background: hsl(330 75% 52%); }
+.augment-choice-type.type-etc { background: hsl(220 10% 45%); }
+
 .augment-choice-icon {
   align-items: center;
   background: linear-gradient(180deg, var(--blue-300), var(--blue-500));

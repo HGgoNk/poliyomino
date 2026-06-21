@@ -13,6 +13,10 @@ function ScoreBoard({ best, score, previewGain }: ScoreBoardProps) {
   const [displayedScore, setDisplayedScore] = useState<number>(score);
   const [isCounting, setIsCounting] = useState<boolean>(false);
   const displayedScoreRef = useRef<number>(score);
+  // Keep the last positive gain value so the span retains a number while fading out.
+  const lastPositiveGainRef = useRef<number>(0);
+  const showPreview = previewGain != null && previewGain > 0;
+  if (showPreview) lastPositiveGainRef.current = previewGain;
 
   useEffect(() => {
     displayedScoreRef.current = displayedScore;
@@ -49,19 +53,20 @@ function ScoreBoard({ best, score, previewGain }: ScoreBoardProps) {
 
   return (
     <>
-      <div className="best-score-badge" aria-label="Best score">
+      <div className="best-score-badge" aria-label={`Best score ${best}`}>
         <Trophy size={20} aria-hidden="true" />
-        <span>Best</span>
         <strong>{best}</strong>
       </div>
       <div className="score-row" aria-label="Current score">
         <div className="score-box">
           <strong className={isCounting ? "is-counting" : ""}>{displayedScore}</strong>
-          {previewGain != null && previewGain > 0 && (
-            <span className="score-preview-gain" aria-label={`배치 시 +${previewGain}점`}>
-              +{previewGain}
-            </span>
-          )}
+          <span
+            className={`score-preview-gain${showPreview ? " is-visible" : ""}`}
+            aria-hidden={showPreview ? undefined : "true"}
+            aria-label={showPreview ? `배치 시 +${lastPositiveGainRef.current}점` : undefined}
+          >
+            +{lastPositiveGainRef.current}
+          </span>
         </div>
       </div>
     </>

@@ -132,7 +132,21 @@ export function rerollOnePiece(board: Board, tray: Tray, deck: PieceTemplate[] =
   return nextTray(board, deck);
 }
 
-export function nextTray(board: Board | null, deck: PieceTemplate[] = PIECES): Tray {
+// Pick a template, biased toward smaller pieces when `bias` > 0 (combo-correction augment).
+// bias is 0..1; higher means small pieces are much more likely.
+function pickBiasedTemplate(deck: PieceTemplate[], bias: number): PieceTemplate {
+  if (bias <= 0) return randomPieceTemplate(deck);
+  const weights = deck.map((piece) => 1 / Math.pow(piece.cells.length, bias * 2));
+  const total = weights.reduce((sum, w) => sum + w, 0);
+  let roll = Math.random() * total;
+  for (let i = 0; i < deck.length; i += 1) {
+    roll -= weights[i];
+    if (roll <= 0) return deck[i];
+  }
+  return deck[deck.length - 1];
+}
+
+export function nextTray(board: Board | null, deck: PieceTemplate[] = PIECES, bias = 0): Tray {
   if (!board) return Array.from({ length: TRAY_SIZE }, () => randomPiece(deck)) as Tray;
 
   // Share one memo across all attempts to avoid recomputing subproblems.
@@ -141,7 +155,7 @@ export function nextTray(board: Board | null, deck: PieceTemplate[] = PIECES): T
 
   for (let attempt = 0; attempt < RANDOM_TRAY_ATTEMPTS; attempt += 1) {
     if (Date.now() > deadline) break;
-    const tray = Array.from({ length: TRAY_SIZE }, () => randomPieceTemplate(deck));
+    const tray = Array.from({ length: TRAY_SIZE }, () => pickBiasedTemplate(deck, bias));
     if (canCompleteTrayMemo(board, tray, memo)) {
       return tray.map(createPieceInstance) as Tray;
     }

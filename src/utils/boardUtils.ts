@@ -82,6 +82,32 @@ export function isBoardEmpty(board: Board): boolean {
   return board.every((row) => row.every((cell) => !cell));
 }
 
+// Count filled cells orthogonally adjacent to the given rows/cols but not inside them — used
+// by the 균열 제거 augment to reward blocks bordering the lines being cleared.
+export function countAdjacentBlocks(board: Board, rows: number[], cols: number[]): number {
+  const rowSet = new Set(rows);
+  const colSet = new Set(cols);
+  const seen = new Set<string>();
+  const height = board.length;
+  const width = board[0]?.length ?? 0;
+
+  const consider = (r: number, c: number) => {
+    if (r < 0 || r >= height || c < 0 || c >= width) return;
+    if (rowSet.has(r) || colSet.has(c)) return; // skip cells inside a cleared line
+    if (!board[r][c]) return;
+    seen.add(`${r}-${c}`);
+  };
+
+  rows.forEach((r) => {
+    for (let c = 0; c < width; c += 1) { consider(r - 1, c); consider(r + 1, c); }
+  });
+  cols.forEach((c) => {
+    for (let r = 0; r < height; r += 1) { consider(r, c - 1); consider(r, c + 1); }
+  });
+
+  return seen.size;
+}
+
 export function clearLines(board: Board): ClearedResult {
   const fullRows = board
     .map((row, index) => (row.every(Boolean) ? index : null))

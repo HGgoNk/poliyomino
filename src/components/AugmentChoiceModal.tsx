@@ -2,6 +2,7 @@ import { useState } from "react";
 import "../styles/AugmentChoiceModal.css";
 import {
   AUGMENT_CHOICE_COUNT,
+  AUGMENT_TYPE_LABEL,
   augmentDetails,
   getAugmentEffectText,
   getAugmentLevel,
@@ -39,7 +40,7 @@ export function AugmentChoiceModal({ augmentState, onChoose, score }: AugmentCho
           <strong id="augment-choice-title">증강 선택</strong>
         </div>
         <div className="augment-choice-list">
-          {choices.map(({ Icon, id, label, summary }) => {
+          {choices.map(({ Icon, id, label, summary, type }) => {
             const currentLevel = getAugmentLevel(augmentState, id);
             const nextLevel = currentLevel + 1;
             const isNewAugment = currentLevel === 0;
@@ -52,6 +53,7 @@ export function AugmentChoiceModal({ augmentState, onChoose, score }: AugmentCho
                 type="button"
               >
                 {isNewAugment && <span className="augment-choice-new">new</span>}
+                <span className={`augment-choice-type type-${type}`}>{AUGMENT_TYPE_LABEL[type]}</span>
                 <span className="augment-choice-icon">
                   <Icon size={48} aria-hidden="true" />
                 </span>

@@ -5,6 +5,7 @@ import { createFillTemplate, isValidFillPiece } from "./fillBlocks";
 import { createGoldenTemplate, isValidGoldenPiece } from "./goldenBlocks";
 import { createGhostTemplate, isValidGhostPiece } from "./ghosts";
 import { createLineTemplate, isValidLinePiece } from "./lineBlocks";
+import { getPieceTemplate, LOCKABLE_BLOCK_IDS } from "../constants/gameData";
 import { shuffle } from "../utils/shuffle";
 import type { PieceTemplate, SpecialType } from "../types";
 
@@ -85,6 +86,18 @@ export function createSpecialChoices(count: number): PieceTemplate[] {
   return shuffle(SPECIAL_TYPES)
     .slice(0, Math.min(count, SPECIAL_TYPES.length))
     .map((type) => SPECIAL_REGISTRY[type].create());
+}
+
+// Offer `count` reward choices mixing special-effect blocks with still-locked base shapes
+// (the latter unlock a plain block). `unlockedBaseIds` are base shapes already unlocked.
+export function createRewardChoices(count: number, unlockedBaseIds: string[]): PieceTemplate[] {
+  const unlocked = new Set(unlockedBaseIds);
+  const lockedBase = LOCKABLE_BLOCK_IDS
+    .filter((id) => !unlocked.has(id))
+    .map((id) => getPieceTemplate(id))
+    .filter((piece): piece is PieceTemplate => piece !== undefined);
+  const specials = SPECIAL_TYPES.map((type) => SPECIAL_REGISTRY[type].create());
+  return shuffle([...lockedBase, ...specials]).slice(0, Math.min(count, lockedBase.length + specials.length));
 }
 
 export function isValidSpecialPiece(piece: unknown): boolean {

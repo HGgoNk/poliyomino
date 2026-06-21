@@ -54,13 +54,15 @@
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   text-shadow: 0 2px 0 hsl(0 0% 100% / 0.6);
-  animation: score-preview-pop 160ms ease-out;
   pointer-events: none;
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity 160ms ease-out, transform 160ms ease-out;
 }
 
-@keyframes score-preview-pop {
-  0% { opacity: 0; transform: scale(0.7); }
-  100% { opacity: 1; transform: scale(1); }
+.score-preview-gain.is-visible {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .score-box strong {
@@ -99,7 +101,7 @@
   background: transparent;
   border: 0;
   box-shadow: none;
-  color: var(--text-muted);
+  color: var(--score-gold);
   display: inline-flex;
   gap: 8px;
   left: max(24px, env(safe-area-inset-left));
@@ -110,23 +112,26 @@
 }
 
 .best-score-badge svg {
-  color: var(--accent-strong);
-  filter: none;
-  height: 20px;
-  width: 20px;
+  color: var(--score-gold);
+  filter: drop-shadow(0 1px 1px var(--score-gold-shadow));
+  height: 22px;
+  width: 22px;
 }
 
 .best-score-badge span {
+  color: var(--score-gold);
   font-size: 1.15rem;
   font-weight: 800;
+  text-shadow: 0 1px 2px hsl(38 80% 30% / 0.4);
   text-transform: uppercase;
 }
 
 .best-score-badge strong {
-  color: var(--text-strong);
+  color: var(--score-gold);
   font-size: 1.6rem;
   font-weight: 900;
   line-height: 1;
+  text-shadow: 0 1px 2px hsl(38 80% 30% / 0.45);
 }
 
 @media (max-width: 460px) {

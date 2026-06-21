@@ -4,7 +4,8 @@ import { getEchoScore, isValidEchoPiece } from "../echoBlocks";
 import { isValidGhostPiece, resolveGhostClears } from "../ghosts";
 import { isValidGoldenPiece, resolveGoldenClears } from "../goldenBlocks";
 import { applyLineClear, isValidLinePiece } from "../lineBlocks";
-import { createRandomSpecialTemplate, createSpecialChoices, isValidSpecialPiece, SPECIAL_LABELS, SPECIAL_SUMMARIES } from "../specials";
+import { createRandomSpecialTemplate, createRewardChoices, createSpecialChoices, isValidSpecialPiece, SPECIAL_LABELS, SPECIAL_SUMMARIES } from "../specials";
+import { LOCKABLE_BLOCK_IDS } from "../../constants/gameData";
 import type { Board } from "../../types";
 
 function emptyBoard(): Board {
@@ -45,6 +46,24 @@ describe("createSpecialChoices", () => {
 
   it("never offers more choices than there are special types", () => {
     expect(createSpecialChoices(99).length).toBe(7);
+  });
+});
+
+describe("createRewardChoices", () => {
+  it("mixes still-locked base shapes with special blocks", () => {
+    for (let i = 0; i < 20; i += 1) {
+      const choices = createRewardChoices(3, []);
+      expect(choices).toHaveLength(3);
+      choices.forEach((choice) => {
+        expect(isValidSpecialPiece(choice) || LOCKABLE_BLOCK_IDS.includes(choice.id)).toBe(true);
+      });
+    }
+  });
+
+  it("offers only special blocks once every base shape is unlocked", () => {
+    createRewardChoices(3, [...LOCKABLE_BLOCK_IDS]).forEach((choice) => {
+      expect(isValidSpecialPiece(choice)).toBe(true);
+    });
   });
 });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applySpreadClear, clearLines, cloneBoard, isBoardEmpty, simulateGravity } from "../boardUtils";
+import { applySpreadClear, clearLines, cloneBoard, countAdjacentBlocks, isBoardEmpty, simulateGravity } from "../boardUtils";
 import type { Board } from "../../types";
 
 const E = null;
@@ -126,6 +126,23 @@ describe("applySpreadClear", () => {
     // clearedRows grows by at most 1
     expect(spread.cleared).toBeGreaterThanOrEqual(singleBase.cleared);
     expect(spread.clearedRows.length).toBeGreaterThanOrEqual(singleBase.clearedRows.length);
+  });
+});
+
+describe("countAdjacentBlocks", () => {
+  it("counts filled cells next to cleared rows, excluding the rows themselves", () => {
+    const board = emptyBoard();
+    board[2][1] = "x";
+    board[2][3] = "x";
+    board[4][5] = "x";
+    board[3][0] = "x"; // inside the cleared row 3 — must be excluded
+    expect(countAdjacentBlocks(board, [3], [])).toBe(3);
+  });
+
+  it("does not double-count a cell adjacent to both a cleared row and column", () => {
+    const board = emptyBoard();
+    board[2][4] = "x"; // adjacent to cleared row 3 (row 2) and cleared col 5 (col 4)
+    expect(countAdjacentBlocks(board, [3], [5])).toBe(1);
   });
 });
 

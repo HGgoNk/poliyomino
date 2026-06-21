@@ -4,7 +4,8 @@ export const SIZE = 8;
 
 export const EMPTY_BOARD: (string | null)[][] = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
 
-export const PIECES: PieceTemplate[] = [
+// The standard polyomino set that makes up the default deck.
+const BASE_PIECES: PieceTemplate[] = [
   { id: "big-square", cells: [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]] },
   { id: "2x3", cells: [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2]] },
   { id: "3x2", cells: [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0], [2, 1]] },
@@ -38,11 +39,60 @@ export const PIECES: PieceTemplate[] = [
   { id: "duo-v", cells: [[0, 0], [1, 0]] }
 ];
 
-// The default deck contains every block defined above. A deck is just the list of
-// piece ids the player currently owns; only these blocks can appear in the tray.
-export const DEFAULT_DECK: string[] = PIECES.map((piece) => piece.id);
+// Unusual extra shapes (diagonals, giant blocks). They are NOT in the default deck — the
+// player opts into them from the start-screen deck builder.
+const EXTRA_PIECES: PieceTemplate[] = [
+  { id: "diag-2", cells: [[0, 0], [1, 1]] },
+  { id: "anti-diag-2", cells: [[0, 1], [1, 0]] },
+  { id: "diag-3", cells: [[0, 0], [1, 1], [2, 2]] },
+  { id: "anti-diag-3", cells: [[0, 2], [1, 1], [2, 0]] },
+  { id: "diag-4", cells: [[0, 0], [1, 1], [2, 2], [3, 3]] },
+  { id: "big-3x4", cells: [
+    [0, 0], [0, 1], [0, 2], [0, 3],
+    [1, 0], [1, 1], [1, 2], [1, 3],
+    [2, 0], [2, 1], [2, 2], [2, 3]
+  ] },
+  { id: "big-4x3", cells: [
+    [0, 0], [0, 1], [0, 2],
+    [1, 0], [1, 1], [1, 2],
+    [2, 0], [2, 1], [2, 2],
+    [3, 0], [3, 1], [3, 2]
+  ] },
+  { id: "big-4x4", cells: [
+    [0, 0], [0, 1], [0, 2], [0, 3],
+    [1, 0], [1, 1], [1, 2], [1, 3],
+    [2, 0], [2, 1], [2, 2], [2, 3],
+    [3, 0], [3, 1], [3, 2], [3, 3]
+  ] }
+];
+
+// Full catalog: standard pieces plus the opt-in extras (usable in any deck).
+export const PIECES: PieceTemplate[] = [...BASE_PIECES, ...EXTRA_PIECES];
+
+// The default deck is the tetromino set only (the four-cell connected pieces). Every other
+// block — including diagonals and giant blocks — must be unlocked through play.
+export const DEFAULT_DECK: string[] = [
+  "square",
+  "quad-h", "quad-v",
+  "L0", "L90", "L180", "L270",
+  "J0", "J90", "J180", "J270",
+  "Z0", "Z90",
+  "S0", "S90",
+  "T0", "T90", "T180", "T270"
+];
+
+const DEFAULT_DECK_SET = new Set(DEFAULT_DECK);
+
+// Non-tetromino base shapes that start locked and are unlocked like special blocks.
+export const LOCKABLE_BLOCK_IDS: string[] = PIECES
+  .map((piece) => piece.id)
+  .filter((id) => !DEFAULT_DECK_SET.has(id));
 
 const PIECE_BY_ID = new Map<string, PieceTemplate>(PIECES.map((piece) => [piece.id, piece]));
+
+export function getPieceTemplate(id: string): PieceTemplate | undefined {
+  return PIECE_BY_ID.get(id);
+}
 
 // Resolve a deck (list of piece ids) into its matching piece templates, dropping any
 // unknown ids. Falls back to the full catalog when the deck is empty or invalid.

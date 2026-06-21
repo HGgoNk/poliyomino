@@ -45,7 +45,21 @@ export type AugmentId =
   | "spread-fill"
   | "spread-clear"
   | "augment-discount"
-  | "board-pressure";
+  | "board-pressure"
+  | "cell-placement-bonus"
+  | "cell-clear-bonus"
+  | "crack-clear"
+  | "combo-accel"
+  | "combo-retain"
+  | "combo-correction"
+  | "overheat"
+  | "item-discount"
+  | "item-gain-score"
+  | "item-use-score"
+  | "item-chain";
+
+// Every augment belongs to a category, shown in the choice UI.
+export type AugmentType = "combo" | "item" | "clear" | "multiline" | "placement" | "etc";
 
 export type AugmentLevels = Record<AugmentId, number>;
 
@@ -55,6 +69,12 @@ export interface AugmentState {
   nextChoiceScore: number;
   scoreAtLastChoice: number;
   trayClearedLine: boolean;
+  /** combo-retain: remaining charges that keep the combo alive when it would break. */
+  comboRetainCharges: number;
+  /** overheat: placements made since the last line clear. */
+  placementsSinceClear: number;
+  /** item-chain: an item was just used; the next placement scores more. */
+  itemChainPending: boolean;
 }
 
 // ─── Items ────────────────────────────────────────────────────────────────────
@@ -162,6 +182,7 @@ export interface AugmentDetail {
   id: AugmentId;
   label: string;
   summary: string;
+  type: AugmentType;
 }
 
 export interface AugmentDetailWithLevel extends AugmentDetail {

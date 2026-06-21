@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "./styles/App.css";
 import "./styles/StartScreen.css";
 import "./styles/AutoUndoFlash.css";
-import { Home, Layers, Play, RotateCcw, Settings, Undo2 } from "lucide-react";
+import { Home, Layers, Play, RotateCcw, Settings, Trophy, Undo2 } from "lucide-react";
 import BlockRewardModal from "./components/BlockRewardModal";
 import Board from "./components/Board";
 import DeckModal from "./components/DeckModal";
@@ -20,6 +20,7 @@ import {
   chooseAugment,
   createInitialAugmentState,
   getAugmentLevel,
+  getComboCorrectionBias,
   getNextAugmentStateAfterPlacement,
   getSavedAugmentState,
   getTotalAugmentLevels,
@@ -30,8 +31,24 @@ import { CLEAR_TIER_LABEL, getClearTier } from "./features/clearFeedback";
 import { GHOST_AUGMENT_INTERVAL } from "./features/ghosts";
 import { getSavedItemState, useItemSystem } from "./features/items";
 import { resolvePlacement } from "./features/resolvePlacement";
-import { createSpecialChoices, isValidSpecialPiece } from "./features/specials";
+import { createRewardChoices, isValidSpecialPiece } from "./features/specials";
+import {
+  addToStash,
+  addUnlockedBlock,
+  getLoadoutPieces,
+  loadBaseLoadout,
+  loadLoadout,
+  loadStash,
+  loadUnlockedBlocks,
+  MAX_BASE_DECK,
+  MAX_LOADOUT,
+  saveBaseLoadout,
+  saveLoadout,
+  saveStash,
+  saveUnlockedBlocks
+} from "./features/specialStash";
 import SpecialChoiceModal from "./components/SpecialChoiceModal";
+import StartDeckModal from "./components/StartDeckModal";
 import useBestScore from "./hooks/useBestScore";
 import { useComboEffect } from "./hooks/useComboEffect";
 import { useGameAudio } from "./hooks/useGameAudio";
@@ -144,9 +161,8 @@ type GamePhase = "start" | "playing";
 function App() {
   const [initialGame] = useState(loadSavedGame);
   const [board, setBoard] = useState<BoardType>(() => initialGame?.board ?? cloneBoard(EMPTY_BOARD));
-  // The deck is fixed for the lifetime of a game (the deck modal is view-only), so there
-  // is no setter — it is seeded once from the saved game or the default deck.
-  const [deck] = useState<string[]>(() => initialGame?.deck ?? DEFAULT_DECK);
+  // The in-game deck: seeded from the saved game, or set to the chosen base loadout on a new game.
+  const [deck, setDeck] = useState<string[]>(() => initialGame?.deck ?? DEFAULT_DECK);
   const [specialPieces, setSpecialPieces] = useState<PieceTemplate[]>(
     () => initialGame?.specialPieces ?? []
   );
@@ -185,8 +201,16 @@ function App() {
   // How many special-block choices have been granted so far (drives the augment/special cadence).
   const [specialsGranted, setSpecialsGranted] = useState<number>(() => initialGame?.specialsGranted ?? 0);
   const [deckModalOpen, setDeckModalOpen] = useState(false);
+  const [startDeckOpen, setStartDeckOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [gamePhase, setGamePhase] = useState<GamePhase>("start");
+  // Special blocks earned across games, the specials chosen to carry, and the base deck loadout.
+  const [specialStash, setSpecialStash] = useState<PieceTemplate[]>(loadStash);
+  const [loadoutIds, setLoadoutIds] = useState<string[]>(loadLoadout);
+  const [baseLoadout, setBaseLoadout] = useState<string[]>(loadBaseLoadout);
+  const [unlockedBlocks, setUnlockedBlocks] = useState<string[]>(loadUnlockedBlocks);
+  // Base shapes the player can put in their deck: tetrominoes (always) + unlocked shapes.
+  const availableBaseIds = useMemo(() => [...DEFAULT_DECK, ...unlockedBlocks], [unlockedBlocks]);
   const [autoUndoFlash, setAutoUndoFlash] = useState(false);
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoUndoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -321,6 +345,11 @@ function App() {
     itemSlots, specialPieces, specialsGranted, score, tray, undoSnapshot
   ]);
 
+  useEffect(() => { saveStash(specialStash); }, [specialStash]);
+  useEffect(() => { saveLoadout(loadoutIds); }, [loadoutIds]);
+  useEffect(() => { saveBaseLoadout(baseLoadout); }, [baseLoadout]);
+  useEffect(() => { saveUnlockedBlocks(unlockedBlocks); }, [unlockedBlocks]);
+
   useEffect(() => {
     if (gameOver) audio.playGameOver();
   }, [gameOver]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -345,31 +374,31 @@ function App() {
       Math.floor(getTotalAugmentLevels(augmentState) / GHOST_AUGMENT_INTERVAL) > specialsGranted;
     const timer = setTimeout(() => {
       if (specialDue) {
-        setSpecialChoices(createSpecialChoices(SPECIAL_CHOICE_COUNT));
+        setSpecialChoices(createRewardChoices(SPECIAL_CHOICE_COUNT, unlockedBlocks));
       } else {
         setAugmentChoiceOpen(true);
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [augmentChoiceOpen, augmentState, clearSelection, gameOver, isClearing, isPlaying, rewardPiece, score, specialChoices, specialsGranted]);
+  }, [augmentChoiceOpen, augmentState, clearSelection, gameOver, isClearing, isPlaying, rewardPiece, score, specialChoices, specialsGranted, unlockedBlocks]);
 
   useEffect(() => () => {
     if (clearTimerRef.current !== null) clearTimeout(clearTimerRef.current);
     if (autoUndoTimerRef.current !== null) clearTimeout(autoUndoTimerRef.current);
   }, []);
 
-  function resetGame() {
+  function resetGame(deckIds: string[] = deck, carriedSpecials: PieceTemplate[] = []) {
     if (clearTimerRef.current !== null) clearTimeout(clearTimerRef.current);
     if (autoUndoTimerRef.current !== null) clearTimeout(autoUndoTimerRef.current);
     setAutoUndoFlash(false);
     const nextBoard = cloneBoard(EMPTY_BOARD);
     setBoard(nextBoard);
-    setSpecialPieces([]);
+    setSpecialPieces(carriedSpecials);
     setGhostCells(new Set());
     setGoldenCells(new Set());
     setBombCells(new Set());
     setBoostCells(new Set());
-    setTray(nextTray(nextBoard, getDeckPieces(deck)));
+    setTray(nextTray(nextBoard, [...getDeckPieces(deckIds), ...carriedSpecials]));
     clearSelection();
     setClearingCells(new Set());
     setScore(0);
@@ -382,8 +411,42 @@ function App() {
   }
 
   function startGame() {
-    resetGame();
+    // Carry the chosen base deck (only currently-available shapes) and specials into the game.
+    const available = new Set(availableBaseIds);
+    const filtered = baseLoadout.filter((id) => available.has(id));
+    const deckIds = filtered.length ? filtered : DEFAULT_DECK;
+    setDeck(deckIds);
+    resetGame(deckIds, getLoadoutPieces(specialStash, loadoutIds));
     setGamePhase("playing");
+  }
+
+  function addSpecialToDeck(id: string) {
+    setLoadoutIds((current) =>
+      current.includes(id) || current.length >= MAX_LOADOUT ? current : [...current, id]
+    );
+  }
+
+  function removeSpecialFromDeck(id: string) {
+    setLoadoutIds((current) => current.filter((entry) => entry !== id));
+  }
+
+  function addBaseBlock(id: string) {
+    const available = new Set(availableBaseIds);
+    setBaseLoadout((current) => {
+      if (current.includes(id)) return current; // each block can be added only once
+      const count = current.filter((entry) => available.has(entry)).length;
+      return count >= MAX_BASE_DECK ? current : [...current, id];
+    });
+  }
+
+  function removeBaseBlock(id: string) {
+    const available = new Set(availableBaseIds);
+    setBaseLoadout((current) => {
+      // At least one (available) base block must always remain in the deck.
+      const count = current.filter((entry) => available.has(entry)).length;
+      if (count <= 1) return current;
+      return current.filter((entry) => entry !== id);
+    });
   }
 
   function continueGame() {
@@ -426,7 +489,9 @@ function App() {
     // Keep the combo-sound escalation in step with the scoring combo: it only resets
     // when a tray is emptied without having cleared a single line.
     if (trayCompleted && !trayClearedLine) audio.resetComboSound();
-    const refreshedTray = trayCompleted ? nextTray(outcome.settledBoard, deckPieces) : updatedTray;
+    const refreshedTray = trayCompleted
+      ? nextTray(outcome.settledBoard, deckPieces, getComboCorrectionBias(augmentState))
+      : updatedTray;
     saveUndoSnapshot();
     setAugmentState((current) => getNextAugmentStateAfterPlacement(current, { cleared: outcome.cleared, trayCompleted }));
     setTray(refreshedTray);
@@ -458,11 +523,19 @@ function App() {
   }
 
   function handleSpecialChoose(template: PieceTemplate) {
-    setSpecialPieces((current) => [...current, template]);
+    if (template.special) {
+      // Special-effect block: add to the live deck and the cross-game stash.
+      setSpecialPieces((current) => [...current, template]);
+      setSpecialStash((current) => addToStash(current, template));
+    } else {
+      // Plain base shape: unlock it (cross-game) and add it to the current deck.
+      setUnlockedBlocks((current) => addUnlockedBlock(current, template.id));
+      setDeck((current) => [...current, template.id]);
+    }
     setRewardPiece(createPieceInstance(template));
     setSpecialChoices(null);
     setSpecialsGranted((count) => count + 1);
-    // A special pick uses up this choice slot, so advance the next-augment target.
+    // A pick uses up this choice slot, so advance the next-augment target.
     setAugmentState((current) => advanceAugmentSchedule(current, score));
   }
 
@@ -496,6 +569,10 @@ function App() {
               {!canContinue && <Play size={20} aria-hidden="true" />}
               새 게임
             </button>
+            <button className="start-deck-action" onClick={() => { playPop(); setStartDeckOpen(true); }} type="button">
+              <Layers size={20} aria-hidden="true" />
+              덱 구성
+            </button>
           </div>
           {canContinue && (
             <div className="start-saved-score" aria-label="Saved game score">
@@ -504,10 +581,26 @@ function App() {
             </div>
           )}
           <div className="start-best" aria-label="Best score">
+            <Trophy size={20} aria-hidden="true" />
             <span>Best</span>
             <strong>{best}</strong>
           </div>
         </section>
+        {startDeckOpen && (
+          <StartDeckModal
+            stash={specialStash}
+            loadoutIds={loadoutIds}
+            baseLoadout={baseLoadout}
+            availableBaseIds={availableBaseIds}
+            maxBase={MAX_BASE_DECK}
+            maxSpecial={MAX_LOADOUT}
+            onAddBase={addBaseBlock}
+            onRemoveBase={removeBaseBlock}
+            onAddSpecial={addSpecialToDeck}
+            onRemoveSpecial={removeSpecialFromDeck}
+            onClose={() => setStartDeckOpen(false)}
+          />
+        )}
       </main>
     );
   }

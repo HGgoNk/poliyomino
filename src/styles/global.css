@@ -49,6 +49,10 @@
   --accent: hsl(205 90% 46%);
   --accent-strong: hsl(207 88% 39%);
 
+  /* Gold for score / best-score text and the trophy */
+  --score-gold: hsl(42 100% 50%);
+  --score-gold-shadow: hsl(38 80% 30%);
+
   /* Unified rounded corners */
   --radius-sm: 10px;
   --radius-md: 14px;
