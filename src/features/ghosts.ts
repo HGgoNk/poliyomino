@@ -1,4 +1,5 @@
 import { PIECES } from "../constants/gameData";
+import { cellsAreCoordPairs, makeSpecialValidator } from "./specialPiece";
 import type { PieceTemplate } from "../types";
 
 // Special blocks share base shapes but trigger extra effects. The ghost block can be
@@ -55,13 +56,4 @@ export function resolveGhostClears(
   return { bonus: clearedCount * GHOST_CLEAR_BONUS, ghostCells: remaining };
 }
 
-export function isValidGhostPiece(piece: unknown): piece is GhostTemplate {
-  return (
-    piece !== null &&
-    typeof piece === "object" &&
-    (piece as PieceTemplate).special === "ghost" &&
-    typeof (piece as PieceTemplate).id === "string" &&
-    Array.isArray((piece as PieceTemplate).cells) &&
-    (piece as PieceTemplate).cells.every((cell) => Array.isArray(cell) && cell.length === 2)
-  );
-}
+export const isValidGhostPiece = makeSpecialValidator<GhostTemplate>("ghost", cellsAreCoordPairs);

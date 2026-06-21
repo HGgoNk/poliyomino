@@ -1,8 +1,81 @@
 import { SIZE } from "../constants/gameData";
+import { shuffleInPlace } from "./shuffle";
 import type { Board, ClearedResult } from "../types";
 
 export function cloneBoard(board: Board): Board {
   return board.map((row) => [...row]);
+}
+
+export interface GravitySimulation {
+  /** Board states for the fall animation, one per visible step (excludes the start board). */
+  frames: Board[];
+  /** Final settled board after all falls and line clears. */
+  finalBoard: Board;
+  /** Original "row-col" key → final key for every surviving cell; cleared cells are omitted. */
+  moved: Map<string, string>;
+}
+
+// Simulate gravity as a cascade: filled cells fall one row at a time; whenever a row fills up
+// it clears, letting the cells above keep falling. Returns the animation frames, the final
+// board, and a move map so callers can relocate position-keyed marks (ghost/golden/bomb/boost)
+// and drop the ones that were cleared.
+export function simulateGravity(board: Board): GravitySimulation {
+  const colors: Board = cloneBoard(board);
+  // Track each cell's original key so we can build the net move map across the whole cascade.
+  const ids: (string | null)[][] = board.map((row, r) =>
+    row.map((cell, c) => (cell ? `${r}-${c}` : null))
+  );
+  const frames: Board[] = [];
+
+  const dropOneStep = (): boolean => {
+    let moved = false;
+    // Bottom-up so each cell falls exactly one row per step (a simultaneous one-row drop).
+    for (let r = SIZE - 2; r >= 0; r -= 1) {
+      for (let c = 0; c < SIZE; c += 1) {
+        if (colors[r][c] && !colors[r + 1][c]) {
+          colors[r + 1][c] = colors[r][c];
+          ids[r + 1][c] = ids[r][c];
+          colors[r][c] = null;
+          ids[r][c] = null;
+          moved = true;
+        }
+      }
+    }
+    return moved;
+  };
+
+  let safety = SIZE * SIZE * 4;
+  for (;;) {
+    while (dropOneStep()) {
+      frames.push(cloneBoard(colors));
+      if (--safety <= 0) break;
+    }
+
+    const fullRows: number[] = [];
+    for (let r = 0; r < SIZE; r += 1) {
+      if (colors[r].every(Boolean)) fullRows.push(r);
+    }
+    if (!fullRows.length || safety <= 0) break;
+
+    fullRows.forEach((r) => {
+      for (let c = 0; c < SIZE; c += 1) {
+        colors[r][c] = null;
+        ids[r][c] = null;
+      }
+    });
+    frames.push(cloneBoard(colors));
+    if (--safety <= 0) break;
+  }
+
+  const moved = new Map<string, string>();
+  for (let r = 0; r < SIZE; r += 1) {
+    for (let c = 0; c < SIZE; c += 1) {
+      const id = ids[r][c];
+      if (id) moved.set(id, `${r}-${c}`);
+    }
+  }
+
+  return { frames, finalBoard: colors, moved };
 }
 
 export function isBoardEmpty(board: Board): boolean {
@@ -102,12 +175,7 @@ export function pickAdjacentLines(
     });
   });
 
-  for (let i = candidates.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
-  }
-
-  const chosen = candidates.slice(0, count);
+  const chosen = shuffleInPlace(candidates).slice(0, count);
   return {
     rows: chosen.filter((line) => line.type === "row").map((line) => line.index),
     cols: chosen.filter((line) => line.type === "col").map((line) => line.index)

@@ -1,17 +1,21 @@
+import { PIECES } from "../constants/gameData";
 import { clearLineIndices } from "../utils/boardUtils";
-import type { Board, ClearedResult, PieceTemplate } from "../types";
+import { cellsAreCoordPairs, makeSpecialValidator } from "./specialPiece";
+import type { Board, CellCoord, ClearedResult, PieceTemplate } from "../types";
 
 export interface LineTemplate extends PieceTemplate {
   special: "line";
   color: "line";
 }
 
-// The line block exists only as a 1x1. When placed it clears every block in the same
-// row and column (the cross through its cell, including itself).
+// The line block can be any polyomino shape. When placed it clears every block in the row
+// and column of each of its cells (a cross through every cell). The id encodes the shape so
+// the tray solver caches it correctly.
 export function createLineTemplate(): LineTemplate {
+  const base = PIECES[Math.floor(Math.random() * PIECES.length)];
   return {
-    id: "line",
-    cells: [[0, 0]],
+    id: `line-${base.id}`,
+    cells: base.cells.map(([row, col]) => [row, col]),
     color: "line",
     special: "line"
   };
@@ -21,26 +25,20 @@ export function isLinePiece(piece: PieceTemplate | null | undefined): boolean {
   return piece?.special === "line";
 }
 
-export function isValidLinePiece(piece: unknown): piece is LineTemplate {
-  return (
-    piece !== null &&
-    typeof piece === "object" &&
-    (piece as PieceTemplate).special === "line" &&
-    typeof (piece as PieceTemplate).id === "string" &&
-    Array.isArray((piece as PieceTemplate).cells) &&
-    (piece as PieceTemplate).cells.length === 1
-  );
-}
+export const isValidLinePiece = makeSpecialValidator<LineTemplate>("line", cellsAreCoordPairs);
 
-// Clear the full row and column the line block landed on. Returns a result shaped like
-// clearLines/placePiece output so it slots into the normal placement flow.
-export function applyLineClear(placedBoard: Board, row: number, col: number): ClearedResult {
-  const { board, clearedCells } = clearLineIndices(placedBoard, [row], [col]);
+// Clear the full row and column of every cell the line block occupies. `cells` are absolute
+// board coordinates. Returns a result shaped like clearLines/placePiece output so it slots
+// into the normal placement flow.
+export function applyLineClear(placedBoard: Board, cells: CellCoord[]): ClearedResult {
+  const rows = [...new Set(cells.map(([row]) => row))];
+  const cols = [...new Set(cells.map(([, col]) => col))];
+  const { board, clearedCells } = clearLineIndices(placedBoard, rows, cols);
   return {
     board,
-    cleared: 2,
+    cleared: rows.length + cols.length,
     clearedCells,
-    clearedRows: [row],
-    clearedCols: [col]
+    clearedRows: rows,
+    clearedCols: cols
   };
 }

@@ -10,7 +10,7 @@ export type CellCoord = [number, number];
 
 // ─── Specials ─────────────────────────────────────────────────────────────────
 
-export type SpecialType = "ghost" | "bomb" | "line";
+export type SpecialType = "ghost" | "line" | "echo" | "golden" | "bomb" | "fill" | "boost";
 
 // ─── Pieces ───────────────────────────────────────────────────────────────────
 
@@ -43,7 +43,9 @@ export type AugmentId =
   | "multi-line"
   | "all-clear"
   | "spread-fill"
-  | "spread-clear";
+  | "spread-clear"
+  | "augment-discount"
+  | "board-pressure";
 
 export type AugmentLevels = Record<AugmentId, number>;
 
@@ -57,14 +59,17 @@ export interface AugmentState {
 
 // ─── Items ────────────────────────────────────────────────────────────────────
 
-export type ItemType = "undo" | "reroll";
+export type ItemType = "undo" | "reroll" | "gravity";
 
 export type ItemSlots = [ItemType | null, ItemType | null, ItemType | null];
 
 export interface UndoSnapshot {
   augmentState: AugmentState;
   board: Board;
+  bombCells: string[];
+  boostCells: string[];
   ghostCells: string[];
+  goldenCells: string[];
   score: number;
   tray: Tray;
 }
@@ -95,6 +100,7 @@ export interface BoardMetrics {
 
 export interface ScoreBreakdown {
   allClearScore: number;
+  boardPressureScore: number;
   clearScore: number;
   comboScore: number;
   multiLineScore: number;
@@ -124,12 +130,15 @@ export interface AnchorOffset {
 export interface SavedGame {
   augmentState?: Partial<AugmentState> & { levels?: Partial<AugmentLevels> };
   board?: unknown;
+  bombCells?: unknown;
+  boostCells?: unknown;
   deck?: unknown;
   ghostCells?: unknown;
-  itemAwardLevel?: unknown;
+  goldenCells?: unknown;
   itemSlots?: unknown;
   score?: unknown;
   specialPieces?: unknown;
+  specialsGranted?: unknown;
   tray?: unknown;
   undoSnapshot?: unknown;
   // Legacy fields that may appear in old saves

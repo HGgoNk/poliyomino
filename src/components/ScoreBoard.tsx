@@ -5,9 +5,11 @@ import { Trophy } from "lucide-react";
 interface ScoreBoardProps {
   best: number;
   score: number;
+  /** Points the selected piece would add at the previewed spot (null when not previewing). */
+  previewGain?: number | null;
 }
 
-function ScoreBoard({ best, score }: ScoreBoardProps) {
+function ScoreBoard({ best, score, previewGain }: ScoreBoardProps) {
   const [displayedScore, setDisplayedScore] = useState<number>(score);
   const [isCounting, setIsCounting] = useState<boolean>(false);
   const displayedScoreRef = useRef<number>(score);
@@ -55,6 +57,11 @@ function ScoreBoard({ best, score }: ScoreBoardProps) {
       <div className="score-row" aria-label="Current score">
         <div className="score-box">
           <strong className={isCounting ? "is-counting" : ""}>{displayedScore}</strong>
+          {previewGain != null && previewGain > 0 && (
+            <span className="score-preview-gain" aria-label={`배치 시 +${previewGain}점`}>
+              +{previewGain}
+            </span>
+          )}
         </div>
       </div>
     </>

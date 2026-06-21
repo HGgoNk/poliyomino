@@ -1,11 +1,15 @@
 import { PIECES } from "../constants/gameData";
 import { createPieceInstance, randomPiece, randomPieceTemplate } from "./pieceUtils";
 import { getPlacements, placePiece } from "./placement";
+import { shuffle } from "./shuffle";
 import type { Board, PieceInstance, PieceTemplate, Tray } from "../types";
 
 const TRAY_SIZE = 3;
 const RANDOM_TRAY_ATTEMPTS = 300;
 const SIMULATION_COLOR = "cyan";
+// The solvability search runs synchronously on the main thread; this caps how long it may
+// block before falling back to a random tray. If tray generation ever becomes a visible
+// jank source, move this search to a Web Worker rather than raising the budget.
 const TRAY_BUDGET_MS = 150;
 
 function boardKey(board: Board): string {
@@ -34,10 +38,6 @@ function canCompleteTrayMemo(board: Board, pieces: PieceTemplate[], memo: Map<st
   return result;
 }
 
-export function canCompleteTray(board: Board, pieces: PieceTemplate[]): boolean {
-  return canCompleteTrayMemo(board, pieces, new Map());
-}
-
 function findSolvableTray(
   board: Board,
   memo: Map<string, boolean>,
@@ -45,7 +45,7 @@ function findSolvableTray(
   deadline: number
 ): PieceTemplate[] | null {
   // Shuffle to avoid always returning the same tray on repeated calls.
-  const shuffled = [...deck].sort(() => Math.random() - 0.5);
+  const shuffled = shuffle(deck);
   for (const first of shuffled) {
     if (Date.now() > deadline) return null;
     for (const second of shuffled) {

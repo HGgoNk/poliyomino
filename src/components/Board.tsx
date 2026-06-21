@@ -1,4 +1,4 @@
-import { colorClass } from "../constants/gameData";
+import { colorClass, SPECIAL_COLORS } from "../constants/gameData";
 import "../styles/Board.css";
 import type { Board as BoardType, PieceInstance, PlacementPosition } from "../types";
 
@@ -35,12 +35,13 @@ function Board({
           const isPreview = previewCells.has(key);
           const isClearing = clearingCells.has(key);
           const isPreviewClearing = previewClearingCells.has(key);
+          const isSpecial = cell ? SPECIAL_COLORS.has(cell) : false;
           const previewClass = isPreview && selectedPiece ? colorClass[selectedPiece.color] : "";
 
           return (
             <button
               aria-label={`${rowIndex + 1} row ${colIndex + 1} column`}
-              className={`board-cell ${cell ? colorClass[cell] : previewClass} ${isPreview ? "preview" : ""} ${isPreviewClearing ? "preview-clearing" : ""} ${isClearing ? "clearing" : ""}`}
+              className={`board-cell ${cell ? colorClass[cell] : previewClass} ${isPreview ? "preview" : ""} ${isPreviewClearing ? "preview-clearing" : ""} ${isClearing ? "clearing" : ""} ${isSpecial ? "special" : ""}`}
               key={key}
               onClick={() => onCellClick(rowIndex, colIndex)}
               onMouseEnter={() => onCellEnter({ row: rowIndex, col: colIndex })}

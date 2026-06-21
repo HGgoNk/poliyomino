@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SIZE } from "../constants/gameData";
-import { getBombArea } from "../features/bombBlocks";
+import { cloneBoard, clearLines } from "../utils/boardUtils";
 import { createPieceInstance } from "../utils/pieceUtils";
 import {
   getClosestPlacement,
   getPlacementDistanceSquared,
+  getSurroundingEmptyCells,
   placePiece
 } from "../utils/placement";
 import type {
@@ -147,32 +148,45 @@ export function usePieceSelection({
 
   const previewCells = useMemo<Set<string>>(() => {
     if (!selectedPiece || !closestPlacementCell || invalidPreview) return new Set();
-    return new Set(
+    const cells = new Set(
       selectedPiece.cells.map(
         ([dr, dc]) => `${closestPlacementCell.row + dr}-${closestPlacementCell.col + dc}`
       )
     );
-  }, [closestPlacementCell, invalidPreview, selectedPiece]);
+    // The fill block also highlights the empty cells it will fill in.
+    if (selectedPiece.special === "fill") {
+      const placed = placePiece(board, selectedPiece, closestPlacementCell.row, closestPlacementCell.col);
+      getSurroundingEmptyCells(placed.placedBoard, selectedPiece, closestPlacementCell.row, closestPlacementCell.col)
+        .forEach(({ row, col }) => cells.add(`${row}-${col}`));
+    }
+    return cells;
+  }, [board, closestPlacementCell, invalidPreview, selectedPiece]);
 
   const previewClearingCells = useMemo<Set<string>>(() => {
     if (!selectedPiece || !closestPlacementCell || invalidPreview) return new Set();
 
     if (selectedPiece.special === "line") {
       const cross = new Set<string>();
-      for (let i = 0; i < SIZE; i += 1) {
-        cross.add(`${closestPlacementCell.row}-${i}`);
-        cross.add(`${i}-${closestPlacementCell.col}`);
-      }
+      selectedPiece.cells.forEach(([dr, dc]) => {
+        const cellRow = closestPlacementCell.row + dr;
+        const cellCol = closestPlacementCell.col + dc;
+        for (let i = 0; i < SIZE; i += 1) {
+          cross.add(`${cellRow}-${i}`);
+          cross.add(`${i}-${cellCol}`);
+        }
+      });
       return cross;
     }
 
-    if (selectedPiece.special === "bomb") {
-      return new Set(
-        getBombArea(closestPlacementCell.row, closestPlacementCell.col).map(([r, c]) => `${r}-${c}`)
-      );
+    const result = placePiece(board, selectedPiece, closestPlacementCell.row, closestPlacementCell.col);
+
+    if (selectedPiece.special === "fill") {
+      const filledBoard = cloneBoard(result.placedBoard);
+      getSurroundingEmptyCells(filledBoard, selectedPiece, closestPlacementCell.row, closestPlacementCell.col)
+        .forEach(({ row, col }) => { filledBoard[row][col] = selectedPiece.color; });
+      return new Set(clearLines(filledBoard).clearedCells);
     }
 
-    const result = placePiece(board, selectedPiece, closestPlacementCell.row, closestPlacementCell.col);
     return new Set(result.clearedCells);
   }, [board, closestPlacementCell, invalidPreview, selectedPiece]);
 

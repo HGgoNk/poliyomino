@@ -62,6 +62,8 @@ export const PIECE_COLORS: string[] = [
   "cyan", "lime", "amber", "rose", "violet", "blue", "teal", "orange", "pink", "green", "indigo"
 ];
 
+export const SPECIAL_COLORS = new Set(["ghost", "line", "echo", "golden", "bomb", "fill", "boost"]);
+
 export const colorClass: Record<string, string> = {
   cyan: "piece-cyan",
   lime: "piece-lime",
@@ -76,5 +78,9 @@ export const colorClass: Record<string, string> = {
   indigo: "piece-indigo",
   ghost: "piece-ghost",
   line: "piece-line",
-  bomb: "piece-bomb"
+  echo: "piece-echo",
+  golden: "piece-golden",
+  bomb: "piece-bomb",
+  fill: "piece-fill",
+  boost: "piece-boost",
 };

@@ -82,6 +82,49 @@
   }
 }
 
+.clear-burst {
+  animation: clear-burst 940ms ease-out forwards;
+  background: none;
+  color: hsl(42 100% 60%);
+  font-size: clamp(2.2rem, 6.4vw, 4.2rem);
+  font-style: italic;
+  font-weight: 900;
+  left: 50%;
+  line-height: 0.95;
+  pointer-events: none;
+  position: absolute;
+  text-shadow:
+    0 2px 0 hsl(28 100% 42%),
+    0 0 18px hsl(40 100% 55% / 0.55);
+  text-transform: uppercase;
+  top: 26%;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  z-index: 21;
+}
+
+@keyframes clear-burst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -38%) scale(0.6) rotate(-4deg);
+  }
+
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.18) rotate(-2deg);
+  }
+
+  55% {
+    opacity: 1;
+    transform: translate(-50%, -52%) scale(1) rotate(-2deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -66%) scale(1.04) rotate(-2deg);
+  }
+}
+
 .game-settings {
   display: grid;
   gap: 8px;

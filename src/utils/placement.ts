@@ -1,5 +1,6 @@
 import { SIZE } from "../constants/gameData";
 import { clearLines, cloneBoard } from "./boardUtils";
+import { shuffleInPlace } from "./shuffle";
 import type { Board, PieceInstance, PieceTemplate, PlacementResult, PlacementPosition, CellCoord } from "../types";
 
 export function canPlace(board: Board, piece: PieceTemplate, row: number, col: number): boolean {
@@ -52,18 +53,20 @@ const ADJACENT_DELTAS: CellCoord[] = [
   [0, 1]
 ];
 
-// Empty cells orthogonally adjacent to the just-placed piece (board should include the piece).
-function findAdjacentEmptyCells(
+// Empty cells next to the just-placed piece (board should include the piece). The piece's
+// own cells are filled, so they are naturally excluded.
+function findEmptyNeighbors(
   board: Board,
   piece: PieceTemplate,
   row: number,
-  col: number
+  col: number,
+  deltas: CellCoord[]
 ): PlacementPosition[] {
   const seen = new Set<string>();
   const cells: PlacementPosition[] = [];
 
   piece.cells.forEach(([dr, dc]) => {
-    ADJACENT_DELTAS.forEach(([ddr, ddc]) => {
+    deltas.forEach(([ddr, ddc]) => {
       const nextRow = row + dr + ddr;
       const nextCol = col + dc + ddc;
       const key = `${nextRow}-${nextCol}`;
@@ -82,6 +85,17 @@ function findAdjacentEmptyCells(
   });
 
   return cells;
+}
+
+// Every empty cell orthogonally adjacent to the placed piece — used by the fill special
+// block, which fills all of them.
+export function getSurroundingEmptyCells(
+  board: Board,
+  piece: PieceTemplate,
+  row: number,
+  col: number
+): PlacementPosition[] {
+  return findEmptyNeighbors(board, piece, row, col, ADJACENT_DELTAS);
 }
 
 export function getPlacementDistanceSquared(
@@ -116,11 +130,6 @@ export function getSpreadFillCells(
 ): PlacementPosition[] {
   if (count <= 0) return [];
 
-  const candidates = findAdjacentEmptyCells(board, piece, row, col);
-  for (let i = candidates.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
-  }
-
+  const candidates = shuffleInPlace(findEmptyNeighbors(board, piece, row, col, ADJACENT_DELTAS));
   return candidates.slice(0, count);
 }

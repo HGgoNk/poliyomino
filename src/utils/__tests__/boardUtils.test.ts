@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applySpreadClear, clearLines, cloneBoard, isBoardEmpty } from "../boardUtils";
+import { applySpreadClear, clearLines, cloneBoard, isBoardEmpty, simulateGravity } from "../boardUtils";
 import type { Board } from "../../types";
 
 const E = null;
@@ -119,17 +119,55 @@ describe("applySpreadClear", () => {
   });
 
   it("can clear an adjacent row when count=1", () => {
-    // Fill rows 3 and 4 so 3 gets cleared and 4 is a candidate neighbor.
-    let board = fillRow(emptyBoard(), 3);
-    board = fillRow(board, 4);
-    const base = clearLines(board);
-    // Both rows are already cleared — no adjacent non-cleared neighbor in that run.
-    // Use a single cleared row to test adjacency.
+    // A single cleared row leaves its neighbours as spread-clear candidates.
     const single = fillRow(emptyBoard(), 3);
     const singleBase = clearLines(single);
     const spread = applySpreadClear(singleBase, 1);
     // clearedRows grows by at most 1
     expect(spread.cleared).toBeGreaterThanOrEqual(singleBase.cleared);
     expect(spread.clearedRows.length).toBeGreaterThanOrEqual(singleBase.clearedRows.length);
+  });
+});
+
+describe("simulateGravity", () => {
+  it("settles scattered cells to the bottom, preserving column order", () => {
+    const board = emptyBoard();
+    board[1][2] = "a";
+    board[4][2] = "b";
+    board[6][2] = "c";
+    const { finalBoard, frames, moved } = simulateGravity(board);
+    expect(finalBoard[5][2]).toBe("a");
+    expect(finalBoard[6][2]).toBe("b");
+    expect(finalBoard[7][2]).toBe("c");
+    expect(finalBoard[1][2]).toBeNull();
+    expect(moved.get("1-2")).toBe("5-2");
+    expect(frames.length).toBeGreaterThan(0); // produced animation steps
+  });
+
+  it("produces no frames when the board is already settled", () => {
+    const board = emptyBoard();
+    board[7][0] = "x";
+    const { frames, moved } = simulateGravity(board);
+    expect(frames).toHaveLength(0);
+    expect(moved.get("7-0")).toBe("7-0"); // identity mapping
+  });
+
+  it("clears a row that fills up while cells fall, and drops the marks on it", () => {
+    // Bottom row missing only column 0; a block above column 0 falls in and completes it.
+    const board = emptyBoard();
+    for (let col = 1; col < 8; col += 1) board[7][col] = "red";
+    board[3][0] = "g"; // falls to (7,0), completing row 7 → row clears
+    const { finalBoard, moved } = simulateGravity(board);
+    expect(finalBoard[7].every((c) => c === null)).toBe(true); // row cleared
+    expect(moved.has("3-0")).toBe(false); // the fallen block was cleared, mark dropped
+  });
+
+  it("cascades: clearing a row lets the cells above fall and settle", () => {
+    const board = emptyBoard();
+    for (let col = 1; col < 8; col += 1) board[7][col] = "red";
+    board[0][0] = "g"; // completes row 7 (clears), then nothing else full
+    board[0][3] = "h"; // ends up at the bottom of column 3 after the cascade
+    const { finalBoard } = simulateGravity(board);
+    expect(finalBoard[7][3]).toBe("h");
   });
 });

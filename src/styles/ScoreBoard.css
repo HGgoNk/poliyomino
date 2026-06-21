@@ -34,16 +34,38 @@
 }
 
 .score-box {
+  align-items: baseline;
   background: transparent;
   border: 0;
   box-shadow: none;
+  display: inline-flex;
+  gap: 12px;
+  justify-content: center;
   min-width: 148px;
   padding: 0;
 }
 
+/* Match the current-score text exactly (size/shape), keeping a green tint to read as a gain. */
+.score-preview-gain {
+  color: var(--text-strong);
+  font-size: 3.7rem;
+  font-weight: 900;
+  line-height: 1.1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 0 hsl(0 0% 100% / 0.6);
+  animation: score-preview-pop 160ms ease-out;
+  pointer-events: none;
+}
+
+@keyframes score-preview-pop {
+  0% { opacity: 0; transform: scale(0.7); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
 .score-box strong {
   color: var(--text-strong);
-  display: block;
+  display: inline-block;
   font-size: 3.7rem;
   font-weight: 900;
   line-height: 1.1;
