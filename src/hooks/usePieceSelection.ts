@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { MAX_SNAP_DISTANCE } from "../constants/config";
 import { SIZE } from "../constants/gameData";
 import { cloneBoard, clearLines } from "../utils/boardUtils";
 import { createPieceInstance } from "../utils/pieceUtils";
@@ -17,8 +18,6 @@ import type {
   PlacementPosition,
   PointerPoint
 } from "../types";
-
-const MAX_SNAP_DISTANCE = 1;
 
 interface UsePieceSelectionParams {
   augmentChoiceOpen: boolean;
@@ -72,6 +71,10 @@ export function usePieceSelection({
     setHoverCell(null);
     setCursorPoint(null);
   }, []);
+
+  useEffect(() => {
+    if (augmentChoiceOpen) clearSelection();
+  }, [augmentChoiceOpen, clearSelection]);
 
   useEffect(() => {
     if (!isPlaying) return undefined;

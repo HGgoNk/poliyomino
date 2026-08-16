@@ -5,7 +5,7 @@
 }
 
 .mini-cell {
-  border-radius: 2px;
+  border-radius: var(--block-cell-radius);
   height: var(--mini-cell-size, 22px);
   width: var(--mini-cell-size, 22px);
 }
@@ -30,7 +30,7 @@
 }
 
 .cursor-piece-grid .mini-cell {
-  border-radius: 5px;
+  border-radius: var(--block-cell-radius);
 }
 
 .piece-cyan { background: hsl(192 100% 43%); }

@@ -9,9 +9,9 @@ import {
   getNextAugmentScore,
   getNextAugmentStateAfterPlacement,
   getRerollCount,
-  getRerollReplacementMode,
-  REROLL_MAX_LEVEL
+  getRerollReplacementMode
 } from "../augments";
+import { REROLL_MAX_LEVEL } from "../augmentData";
 import type { PieceInstance } from "../../types";
 
 function piece(cellCount: number): PieceInstance {

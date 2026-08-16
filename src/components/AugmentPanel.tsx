@@ -1,6 +1,7 @@
 import { useState } from "react";
 import "../styles/AugmentPanel.css";
-import { augmentDetails, getAugmentLevel } from "../features/augments";
+import { augmentDetails } from "../features/augmentData";
+import { getAugmentLevel } from "../features/augments";
 import type { AugmentDetailWithLevel, AugmentId, AugmentState } from "../types";
 
 interface AugmentPanelProps {

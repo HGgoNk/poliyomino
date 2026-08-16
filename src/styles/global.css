@@ -59,6 +59,7 @@
   --radius-lg: 18px;
   --radius-xl: 24px;
   --radius-pill: 999px;
+  --block-cell-radius: 16%;
 
   /* Unified soft shadows */
   --shadow-sm: 0 2px 8px hsl(206 70% 45% / 0.10);
@@ -88,6 +89,15 @@
 
 * {
   box-sizing: border-box;
+}
+
+::selection {
+  color: inherit;
+  background: transparent;
+}
+
+:where(h1, h2, h3, h4, h5, h6, p, span, strong, em, small, li, label) {
+  cursor: default;
 }
 
 body {

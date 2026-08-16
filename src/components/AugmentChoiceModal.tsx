@@ -1,14 +1,12 @@
 import { useState } from "react";
 import "../styles/AugmentChoiceModal.css";
 import {
-  AUGMENT_CHOICE_COUNT,
-  AUGMENT_TYPE_LABEL,
-  augmentDetails,
   getAugmentEffectText,
   getAugmentLevel,
   getAugmentMaxLevel,
   getNextAugmentScore
 } from "../features/augments";
+import { AUGMENT_CHOICE_COUNT, AUGMENT_TYPE_LABEL, augmentDetails } from "../features/augmentData";
 import { shuffleInPlace } from "../utils/shuffle";
 import type { AugmentDetail, AugmentId, AugmentState } from "../types";
 

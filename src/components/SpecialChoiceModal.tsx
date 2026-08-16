@@ -1,4 +1,5 @@
 import "../styles/AugmentChoiceModal.css";
+import { useMemo } from "react";
 import PieceShape from "./PieceShape";
 import { SPECIAL_LABELS, SPECIAL_SUMMARIES } from "../features/specials";
 import { createPieceInstance } from "../utils/pieceUtils";
@@ -10,6 +11,11 @@ interface SpecialChoiceModalProps {
 }
 
 function SpecialChoiceModal({ choices, onChoose }: SpecialChoiceModalProps) {
+  const previews = useMemo(
+    () => choices.map((template) => ({ template, preview: createPieceInstance(template) })),
+    [choices]
+  );
+
   return (
     <div className="augment-choice-backdrop" role="dialog" aria-modal="true" aria-labelledby="special-choice-title">
       <section className="augment-choice-panel">
@@ -17,10 +23,8 @@ function SpecialChoiceModal({ choices, onChoose }: SpecialChoiceModalProps) {
           <strong id="special-choice-title">블록 해금</strong>
         </div>
         <div className="augment-choice-list">
-          {choices.map((template) => {
+          {previews.map(({ template, preview }) => {
             const special = template.special as SpecialType | undefined;
-            // Render with a real instance so PieceShape gets a uid and the assigned color.
-            const preview = createPieceInstance(template);
             return (
               <button
                 className="augment-choice-card new"
@@ -34,7 +38,7 @@ function SpecialChoiceModal({ choices, onChoose }: SpecialChoiceModalProps) {
                 </span>
                 <span className="augment-choice-title">{special ? SPECIAL_LABELS[special] : "기본 블록"}</span>
                 <span className="augment-choice-summary">
-                  {special ? SPECIAL_SUMMARIES[special] : "이 모양의 기본 블록을 덱에 해금합니다."}
+                  {special ? SPECIAL_SUMMARIES[special] : "이 블록을 덱에 해금합니다."}
                 </span>
               </button>
             );

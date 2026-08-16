@@ -16,7 +16,7 @@
 
 .board-cell {
   aspect-ratio: 1;
-  border-radius: var(--radius-sm);
+  border-radius: var(--block-cell-radius);
   min-width: 0;
   padding: 0;
   transition: transform 120ms ease, filter 120ms ease, opacity 120ms ease;

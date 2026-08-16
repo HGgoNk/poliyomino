@@ -1,44 +1,37 @@
-import { useEffect, useRef, useState } from "react";
 import { ArrowDownToLine, RefreshCw, Undo2 } from "lucide-react";
 import { getAugmentLevel, getSavedAugmentState } from "./augments";
-import { cloneBoard, simulateGravity } from "../utils/boardUtils";
-import { rerollOnePiece } from "../utils/tray";
+import { cloneBoard } from "../utils/boardUtils";
 import type {
   AugmentState,
-  Board,
   ItemDetails,
   ItemSlots,
   ItemType,
   SavedGame,
-  Tray,
   UndoSnapshot,
   ItemStateValidators
 } from "../types";
 
 // One item is awarded each time the combo crosses a multiple of this number.
 export const ITEM_COMBO_STEP = 10;
-// item-discount: each level lowers the combo interval by this, down to ITEM_COMBO_STEP_MIN.
 export const ITEM_DISCOUNT_PER_LEVEL = 2;
 export const ITEM_COMBO_STEP_MIN = 2;
-// item-gain-score / item-use-score: points per level on item gain / use.
 export const ITEM_GAIN_SCORE = 20;
 export const ITEM_USE_SCORE = 15;
 
-// Combo interval at which items are awarded, lowered by the item-discount augment.
 export function getItemComboStep(augmentState: AugmentState): number {
   const level = getAugmentLevel(augmentState, "item-discount");
   return Math.max(ITEM_COMBO_STEP_MIN, ITEM_COMBO_STEP - level * ITEM_DISCOUNT_PER_LEVEL);
 }
+
 export const MAX_UNDO_ITEMS = 3;
 export const MAX_REROLL_ITEMS = 3;
 export const MAX_ITEM_SLOTS = 3;
 export const ITEM_TYPES: ItemType[] = ["undo", "reroll", "gravity"];
-// Milliseconds between gravity fall/clear animation frames.
 export const GRAVITY_FRAME_MS = 70;
 
 export const itemDetails: ItemDetails = {
   reroll: { Icon: RefreshCw, description: "트레이 블록을 새로 뽑습니다.", label: "리롤", quantity: 1 },
-  undo: { Icon: Undo2, description: "직전 수로 되돌립니다.", label: "되돌리기", quantity: 1 },
+  undo: { Icon: Undo2, description: "직전 턴으로 되돌립니다.", label: "되돌리기", quantity: 1 },
   gravity: { Icon: ArrowDownToLine, description: "보드의 모든 블록을 바닥으로 내립니다.", label: "중력", quantity: 1 }
 };
 
@@ -125,277 +118,5 @@ export function getSavedItemState(savedGame: SavedGame, validators: ItemStateVal
           tray: (rawSnapshot as UndoSnapshot).tray
         }
       : null
-  };
-}
-
-interface UseItemSystemArgs {
-  augmentState: AugmentState;
-  board: Board;
-  bombCells: Set<string>;
-  boostCells: Set<string>;
-  clearHighlightMs: number;
-  clearSelection: () => void;
-  clearTimerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>;
-  deckPieces: import("../types").PieceTemplate[];
-  ghostCells: Set<string>;
-  goldenCells: Set<string>;
-  initialGame: (SavedItemState & { score?: number }) | null;
-  isClearing: boolean;
-  score: number;
-  setBoard: React.Dispatch<React.SetStateAction<Board>>;
-  setAugmentState: React.Dispatch<React.SetStateAction<AugmentState>>;
-  setBombCells: React.Dispatch<React.SetStateAction<Set<string>>>;
-  setBoostCells: React.Dispatch<React.SetStateAction<Set<string>>>;
-  setClearingCells: React.Dispatch<React.SetStateAction<Set<string>>>;
-  setGhostCells: React.Dispatch<React.SetStateAction<Set<string>>>;
-  setGoldenCells: React.Dispatch<React.SetStateAction<Set<string>>>;
-  setScore: React.Dispatch<React.SetStateAction<number>>;
-  setTray: React.Dispatch<React.SetStateAction<Tray>>;
-  tray: Tray;
-}
-
-export function useItemSystem({
-  augmentState,
-  board,
-  bombCells,
-  boostCells,
-  clearSelection,
-  clearTimerRef,
-  deckPieces,
-  ghostCells,
-  goldenCells,
-  initialGame,
-  isClearing,
-  score,
-  setBoard,
-  setAugmentState,
-  setBombCells,
-  setBoostCells,
-  setClearingCells,
-  setGhostCells,
-  setGoldenCells,
-  setScore,
-  setTray,
-  tray
-}: UseItemSystemArgs) {
-  const [itemSlots, setItemSlots] = useState<ItemSlots>(
-    () => initialGame?.itemSlots ?? createEmptyItemSlots()
-  );
-  const [undoSnapshot, setUndoSnapshot] = useState<UndoSnapshot | null>(
-    () => initialGame?.undoSnapshot ?? null
-  );
-  // Item slot index of an in-progress augmented reroll (null when no reroll modal is open).
-  const [rerollModalSlot, setRerollModalSlot] = useState<number | null>(null);
-  // True while the gravity item's fall animation is playing (locks input meanwhile).
-  const [gravityAnimating, setGravityAnimating] = useState(false);
-  const gravityTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Last combo value we awarded items for; seeded from the restored combo so resuming a
-  // saved game does not re-award. Items drop each time the combo crosses a multiple of 10.
-  const comboMilestoneRef = useRef(augmentState.combo);
-
-  useEffect(() => () => {
-    if (gravityTimerRef.current !== null) clearInterval(gravityTimerRef.current);
-  }, []);
-
-  useEffect(() => {
-    const combo = augmentState.combo;
-    const prevCombo = comboMilestoneRef.current;
-    comboMilestoneRef.current = combo;
-    if (combo <= prevCombo) return; // combo reset or unchanged — nothing to award
-
-    // item-discount lowers the interval; both terms use the current step for consistency.
-    const step = getItemComboStep(augmentState);
-    const itemsEarned = Math.floor(combo / step) - Math.floor(prevCombo / step);
-    if (itemsEarned <= 0) return;
-
-    let placed = 0;
-    setItemSlots((current) => {
-      const nextSlots = [...current] as ItemSlots;
-      let itemsToAward = itemsEarned;
-
-      // Fill empty slots only. If more items are earned than there are free slots, the
-      // overflow is dropped by design — slots are capped at MAX_ITEM_SLOTS.
-      for (let index = 0; index < nextSlots.length && itemsToAward > 0; index += 1) {
-        if (!nextSlots[index]) {
-          nextSlots[index] = getRandomItemType();
-          itemsToAward -= 1;
-          placed += 1;
-        }
-      }
-
-      return nextSlots;
-    });
-
-    // item-gain-score: points for each item that actually landed in a slot.
-    const gainLevel = getAugmentLevel(augmentState, "item-gain-score");
-    if (gainLevel > 0 && placed > 0) setScore((current) => current + placed * gainLevel * ITEM_GAIN_SCORE);
-  }, [augmentState, setScore]);
-
-  function clearItemSlot(slotIndex: number) {
-    setItemSlots((current) =>
-      current.map((item, index) => (index === slotIndex ? null : item)) as ItemSlots
-    );
-  }
-
-  function resetItems() {
-    if (gravityTimerRef.current !== null) clearInterval(gravityTimerRef.current);
-    gravityTimerRef.current = null;
-    setGravityAnimating(false);
-    comboMilestoneRef.current = 0;
-    setItemSlots(createEmptyItemSlots());
-    setUndoSnapshot(null);
-    setRerollModalSlot(null);
-  }
-
-  function saveUndoSnapshot() {
-    setUndoSnapshot({
-      augmentState,
-      board: cloneBoard(board),
-      bombCells: [...bombCells],
-      boostCells: [...boostCells],
-      ghostCells: [...ghostCells],
-      goldenCells: [...goldenCells],
-      score,
-      tray
-    });
-  }
-
-  // Shared side effects when any item is spent: 사용 보너스 점수 + 아이템 연계 플래그.
-  function onItemUsed() {
-    const useLevel = getAugmentLevel(augmentState, "item-use-score");
-    if (useLevel > 0) setScore((current) => current + useLevel * ITEM_USE_SCORE);
-    if (getAugmentLevel(augmentState, "item-chain") > 0) {
-      setAugmentState((current) => ({ ...current, itemChainPending: true }));
-    }
-  }
-
-  function handleUndo(slotIndex: number) {
-    if (isClearing || !undoSnapshot || itemSlots[slotIndex] !== "undo") return;
-
-    if (clearTimerRef.current !== null) clearTimeout(clearTimerRef.current);
-    setAugmentState(getSavedAugmentState(undoSnapshot as unknown as SavedGame));
-    setBoard(cloneBoard(undoSnapshot.board));
-    setTray(undoSnapshot.tray);
-    setScore(undoSnapshot.score);
-    setGhostCells(new Set(undoSnapshot.ghostCells ?? []));
-    setGoldenCells(new Set(undoSnapshot.goldenCells ?? []));
-    setBombCells(new Set(undoSnapshot.bombCells ?? []));
-    setBoostCells(new Set(undoSnapshot.boostCells ?? []));
-    setClearingCells(new Set());
-    clearItemSlot(slotIndex);
-    setUndoSnapshot(null);
-    clearSelection();
-    onItemUsed();
-  }
-
-  // True when an undo item could be auto-spent (an undo item is held and a snapshot exists).
-  const canUndo = !isClearing && undoSnapshot !== null && itemSlots.includes("undo");
-
-  // Spend a held undo item automatically (e.g. to rescue the player from game over).
-  function autoUndo(): boolean {
-    if (!canUndo) return false;
-    const slotIndex = itemSlots.findIndex((item) => item === "undo");
-    if (slotIndex === -1) return false;
-    handleUndo(slotIndex);
-    return true;
-  }
-
-  function handleReroll(slotIndex: number) {
-    if (isClearing || itemSlots[slotIndex] !== "reroll" || !tray.some(Boolean)) return;
-
-    const rerollLevel = getAugmentLevel(augmentState, "reroll-power");
-    if (rerollLevel <= 0) {
-      setTray(rerollOnePiece(board, tray, deckPieces));
-      clearItemSlot(slotIndex);
-      clearSelection();
-      onItemUsed();
-      return;
-    }
-
-    // Augmented reroll runs through a dedicated modal; the item is consumed on apply.
-    clearSelection();
-    setRerollModalSlot(slotIndex);
-  }
-
-  function applyReroll(nextTrayPieces: Tray) {
-    setTray(nextTrayPieces);
-    if (rerollModalSlot !== null) {
-      clearItemSlot(rerollModalSlot);
-      onItemUsed();
-    }
-    setRerollModalSlot(null);
-  }
-
-  function cancelReroll() {
-    setRerollModalSlot(null);
-  }
-
-  function handleGravity(slotIndex: number) {
-    if (isClearing || gravityAnimating || itemSlots[slotIndex] !== "gravity") return;
-
-    const { frames, finalBoard, moved } = simulateGravity(board);
-    if (!frames.length) return; // nothing falls or clears — keep the item
-
-    clearSelection();
-    clearItemSlot(slotIndex);
-    onItemUsed();
-    setGravityAnimating(true);
-
-    // Step through the fall/clear frames, then settle the board and relocate the marks.
-    let frameIndex = 0;
-    if (gravityTimerRef.current !== null) clearInterval(gravityTimerRef.current);
-    gravityTimerRef.current = setInterval(() => {
-      if (frameIndex < frames.length) {
-        setBoard(frames[frameIndex]);
-        frameIndex += 1;
-        return;
-      }
-
-      if (gravityTimerRef.current !== null) clearInterval(gravityTimerRef.current);
-      gravityTimerRef.current = null;
-
-      // Marks follow their block to its final cell; marks on cleared cells are dropped.
-      const remap = (cells: Set<string>) =>
-        new Set([...cells].flatMap((key) => (moved.has(key) ? [moved.get(key)!] : [])));
-      setBoard(finalBoard);
-      setGhostCells(remap);
-      setGoldenCells(remap);
-      setBombCells(remap);
-      setBoostCells(remap);
-      setGravityAnimating(false);
-    }, GRAVITY_FRAME_MS);
-  }
-
-  function handleItemClick(item: ItemType | null, slotIndex: number) {
-    if (gravityAnimating) return;
-
-    if (item === "undo") {
-      handleUndo(slotIndex);
-      return;
-    }
-
-    if (item === "reroll") {
-      handleReroll(slotIndex);
-      return;
-    }
-
-    if (item === "gravity") {
-      handleGravity(slotIndex);
-      return;
-    }
-  }
-
-  return {
-    applyReroll,
-    autoUndo,
-    canUndo,
-    cancelReroll,
-    gravityAnimating,
-    handleItemClick,
-    itemSlots,
-    rerollModalSlot,
-    resetItems,
-    saveUndoSnapshot,
-    undoSnapshot
   };
 }

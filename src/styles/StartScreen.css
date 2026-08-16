@@ -27,7 +27,7 @@
 .start-cell {
   aspect-ratio: 1;
   background: var(--surface-card-soft);
-  border-radius: var(--radius-sm);
+  border-radius: var(--block-cell-radius);
   box-shadow: inset 0 0 0 1px var(--surface-card-border);
 }
 

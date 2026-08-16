@@ -1,249 +1,46 @@
-import { Bomb, Boxes, Eraser, Flame, Gauge, Gift, HandCoins, Layers, Link, Pickaxe, Plus, RefreshCw, Rocket, Shield, Shuffle, Sparkles, Star, Tag, Thermometer, TrendingUp, Zap } from "lucide-react";
+import {
+  ALL_CLEAR_SCORE_BONUS,
+  AUGMENT_BASE_SCORE,
+  AUGMENT_DISCOUNT_MAX,
+  AUGMENT_DISCOUNT_PER_LEVEL,
+  AUGMENT_IDS,
+  AUGMENT_MAX_LEVELS,
+  AUGMENT_SCORE_RATE,
+  BOARD_PRESSURE_SCORE_BONUS,
+  BOARD_PRESSURE_THRESHOLD,
+  CELL_CLEAR_BONUS,
+  CELL_PLACEMENT_BONUS,
+  CLEAR_MULT_PER_LEVEL,
+  COMBO_ACCEL_PER_COMBO,
+  COMBO_BASE_BONUS,
+  COMBO_CLEAR_SCORE_BONUS,
+  COMBO_CORRECTION_MAX,
+  COMBO_CORRECTION_PER_LEVEL,
+  CRACK_CLEAR_BONUS,
+  ITEM_CHAIN_RATE,
+  ITEM_DISCOUNT_PER_LEVEL,
+  ITEM_GAIN_SCORE_BONUS,
+  ITEM_USE_SCORE_BONUS,
+  MULTI_LINE_BASE_BONUS,
+  MULTI_LINE_SCORE_BONUS,
+  OVERHEAT_BONUS,
+  PLACEMENT_MULT_PER_LEVEL,
+  SPREAD_CLEAR_CHANCE_PER_LEVEL,
+  SPREAD_FILL_CHANCE_PER_LEVEL
+} from "./augmentData";
 import type {
-  AugmentDetail,
   AugmentId,
   AugmentLevels,
   AugmentState,
-  AugmentType,
   RerollReplacementMode,
   SavedGame,
   ScoreBreakdown
 } from "../types";
 import type { PieceInstance } from "../types";
 
-export const AUGMENT_CHOICE_COUNT = 3;
-
-// 배치/제거는 기본 점수에 곱연산(레벨당 +10%). 칸 보너스는 칸마다 합연산.
-export const PLACEMENT_MULT_PER_LEVEL = 0.1;
-export const CLEAR_MULT_PER_LEVEL = 0.1;
-export const CELL_PLACEMENT_BONUS = 1;
-export const CELL_CLEAR_BONUS = 2;
-export const CRACK_CLEAR_BONUS = 2;
-// 콤보 가속: 콤보 1당, 레벨당 점수 배율 +1%.
-export const COMBO_ACCEL_PER_COMBO = 0.01;
-export const COMBO_BASE_BONUS = 5;
-export const COMBO_CLEAR_SCORE_BONUS = 5;
-// 과열: 줄 제거 없이 쌓인 배치 1회당, 레벨당 제거 점수 +3.
-export const OVERHEAT_BONUS = 3;
-// 아이템 연계: 아이템 사용 후 다음 배치 점수 배율 레벨당 +25%.
-export const ITEM_CHAIN_RATE = 0.25;
-// 콤보 보정: 레벨당 작은 블록 가중치 강도 +0.15 (최대 0.9).
-export const COMBO_CORRECTION_PER_LEVEL = 0.15;
-export const COMBO_CORRECTION_MAX = 0.9;
-export const AUGMENT_BASE_SCORE = 50;
-export const AUGMENT_SCORE_RATE = 0.1;
-export const REROLL_MAX_LEVEL = 5;
-export const MULTI_LINE_BASE_BONUS = 15;
-export const MULTI_LINE_SCORE_BONUS = 10;
-export const ALL_CLEAR_SCORE_BONUS = 50;
-export const SPREAD_FILL_CHANCE_PER_LEVEL = 0.04;
-export const SPREAD_CLEAR_CHANCE_PER_LEVEL = 0.04;
-// Each level cuts the points needed for the next augment by this fraction.
-export const AUGMENT_DISCOUNT_PER_LEVEL = 0.1;
-export const BOARD_PRESSURE_SCORE_BONUS = 10;
-export const BOARD_PRESSURE_THRESHOLD = 0.8;
-// Never discount the requirement below this fraction of the base gap.
-export const AUGMENT_DISCOUNT_MAX = 0.9;
-
-export const AUGMENT_IDS: AugmentId[] = [
-  "placement-score",
-  "clear-score",
-  "tray-combo",
-  "reroll-power",
-  "multi-line",
-  "all-clear",
-  "spread-fill",
-  "spread-clear",
-  "augment-discount",
-  "board-pressure",
-  "cell-placement-bonus",
-  "cell-clear-bonus",
-  "crack-clear",
-  "combo-accel",
-  "combo-retain",
-  "combo-correction",
-  "overheat",
-  "item-discount",
-  "item-gain-score",
-  "item-use-score",
-  "item-chain"
-];
-
-// Human-readable label for each augment category.
-export const AUGMENT_TYPE_LABEL: Record<AugmentType, string> = {
-  combo: "콤보형",
-  item: "아이템형",
-  clear: "줄 제거형",
-  multiline: "멀티라인형",
-  placement: "안정 배치형",
-  etc: "기타"
-};
-
-// Augments that cap out at a fixed level (others can be leveled indefinitely).
-const AUGMENT_MAX_LEVELS: Partial<Record<AugmentId, number>> = {
-  "reroll-power": REROLL_MAX_LEVEL
-};
-
-export const augmentDetails: AugmentDetail[] = [
-  // ── 안정 배치형 ──
-  {
-    Icon: Plus,
-    id: "placement-score",
-    type: "placement",
-    label: "배치",
-    summary: "블록을 배치할 때 얻는 점수가 곱연산으로 증가합니다."
-  },
-  {
-    Icon: Boxes,
-    id: "cell-placement-bonus",
-    type: "placement",
-    label: "칸 배치 보너스",
-    summary: "배치한 칸 수에 비례해 추가 점수를 얻습니다(칸마다 합연산)."
-  },
-  {
-    Icon: Zap,
-    id: "spread-fill",
-    type: "placement",
-    label: "확산",
-    summary: "블록 설치 시 일정 확률로 근처 빈 칸을 채웁니다. 레벨업 시 확률과 칸 수가 증가합니다."
-  },
-  {
-    Icon: Star,
-    id: "all-clear",
-    type: "placement",
-    label: "올클리어",
-    summary: "보드를 완전히 비우면 추가 점수를 얻습니다."
-  },
-  // ── 줄 제거형 ──
-  {
-    Icon: Sparkles,
-    id: "clear-score",
-    type: "clear",
-    label: "제거",
-    summary: "줄을 제거할 때 얻는 점수가 곱연산으로 증가합니다."
-  },
-  {
-    Icon: Eraser,
-    id: "cell-clear-bonus",
-    type: "clear",
-    label: "칸 제거 보너스",
-    summary: "제거된 칸 수에 비례해 추가 점수를 얻습니다(칸마다 합연산)."
-  },
-  {
-    Icon: Bomb,
-    id: "spread-clear",
-    type: "clear",
-    label: "연쇄 제거",
-    summary: "줄 제거 시 일정 확률로 근처 줄도 함께 제거됩니다. 레벨업 시 확률과 줄 수가 증가합니다."
-  },
-  {
-    Icon: Pickaxe,
-    id: "crack-clear",
-    type: "clear",
-    label: "균열 제거",
-    summary: "제거된 줄과 인접한 블록 수에 비례해 추가 점수를 얻습니다."
-  },
-  // ── 콤보형 ──
-  {
-    Icon: Flame,
-    id: "tray-combo",
-    type: "combo",
-    label: "콤보",
-    summary: "줄을 지울 때마다 콤보가 오르고, 콤보 추가 점수가 증가합니다."
-  },
-  {
-    Icon: TrendingUp,
-    id: "combo-accel",
-    type: "combo",
-    label: "콤보 가속",
-    summary: "콤보가 높을수록 획득 점수 배율이 증가합니다."
-  },
-  {
-    Icon: Shield,
-    id: "combo-retain",
-    type: "combo",
-    label: "콤보 유지",
-    summary: "콤보가 끊길 상황에서 일정 횟수 콤보를 유지합니다(줄 제거 시 충전)."
-  },
-  {
-    Icon: Shuffle,
-    id: "combo-correction",
-    type: "combo",
-    label: "콤보 보정",
-    summary: "트레이에 콤보를 이어가기 쉬운 작은 블록이 나올 확률이 증가합니다."
-  },
-  // ── 멀티라인형 ──
-  {
-    Icon: Layers,
-    id: "multi-line",
-    type: "multiline",
-    label: "멀티라인",
-    summary: "여러 줄을 한 번에 제거하면 추가 점수를 얻습니다."
-  },
-  {
-    Icon: Gauge,
-    id: "board-pressure",
-    type: "multiline",
-    label: "포화",
-    summary: "보드가 80% 이상 채워진 상태에서 블록을 배치하면 추가 점수를 얻습니다."
-  },
-  {
-    Icon: Thermometer,
-    id: "overheat",
-    type: "multiline",
-    label: "과열",
-    summary: "줄 제거 없이 배치할수록 다음 줄 제거 점수가 증가합니다."
-  },
-  // ── 아이템형 ──
-  {
-    Icon: RefreshCw,
-    id: "reroll-power",
-    type: "item",
-    label: "다시뽑기",
-    summary: "다시뽑기 아이템이 강화됩니다. 레벨에 따라 바꿀 블록을 직접 고르고, 개수가 늘며, 새 블록도 선택할 수 있습니다."
-  },
-  {
-    Icon: Tag,
-    id: "item-discount",
-    type: "item",
-    label: "아이템 조건 약화",
-    summary: "아이템 획득에 필요한 콤보 간격이 줄어듭니다."
-  },
-  {
-    Icon: Gift,
-    id: "item-gain-score",
-    type: "item",
-    label: "보급 점수",
-    summary: "아이템을 획득할 때마다 추가 점수를 얻습니다."
-  },
-  {
-    Icon: HandCoins,
-    id: "item-use-score",
-    type: "item",
-    label: "사용 보너스",
-    summary: "아이템을 사용할 때마다 추가 점수를 얻습니다."
-  },
-  {
-    Icon: Link,
-    id: "item-chain",
-    type: "item",
-    label: "아이템 연계",
-    summary: "아이템 사용 후 다음 배치 점수가 증가합니다."
-  },
-  // ── 기타 ──
-  {
-    Icon: Rocket,
-    id: "augment-discount",
-    type: "etc",
-    label: "가속",
-    summary: "다음 증강을 얻는 데 필요한 점수가 레벨당 10% 줄어듭니다."
-  }
-];
-
 export function getAugmentMaxLevel(id: AugmentId): number {
   return AUGMENT_MAX_LEVELS[id] ?? Infinity;
 }
-
 function createAugmentLevels(): AugmentLevels {
   return Object.fromEntries(AUGMENT_IDS.map((id) => [id, 0])) as AugmentLevels;
 }
@@ -300,7 +97,6 @@ export function createInitialAugmentState(): AugmentState {
     itemChainPending: false
   };
 }
-
 // Fraction (0–COMBO_CORRECTION_MAX) controlling how strongly the tray favors small blocks.
 export function getComboCorrectionBias(augmentState: AugmentState): number {
   return Math.min(
@@ -488,15 +284,15 @@ export function getAugmentEffectText(id: AugmentId, level: number): string {
   }
 
   if (id === "item-discount") {
-    return `아이템 콤보 간격 -${level * 2}`;
+    return `아이템 콤보 간격 -${level * ITEM_DISCOUNT_PER_LEVEL}`;
   }
 
   if (id === "item-gain-score") {
-    return `아이템 획득 시 +${level * 20}`;
+    return `아이템 획득 시 +${level * ITEM_GAIN_SCORE_BONUS}`;
   }
 
   if (id === "item-use-score") {
-    return `아이템 사용 시 +${level * 15}`;
+    return `아이템 사용 시 +${level * ITEM_USE_SCORE_BONUS}`;
   }
 
   if (id === "item-chain") {

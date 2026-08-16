@@ -12,6 +12,13 @@ export type CellCoord = [number, number];
 
 export type SpecialType = "ghost" | "line" | "echo" | "golden" | "bomb" | "fill" | "boost";
 
+export interface SpecialMarks {
+  bomb: Set<string>;
+  boost: Set<string>;
+  ghost: Set<string>;
+  golden: Set<string>;
+}
+
 // ─── Pieces ───────────────────────────────────────────────────────────────────
 
 /** A piece definition from the catalog (no uid, no color assigned yet). */

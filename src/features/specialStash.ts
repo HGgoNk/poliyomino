@@ -1,4 +1,4 @@
-import { DEFAULT_DECK, LOCKABLE_BLOCK_IDS } from "../constants/gameData";
+import { DEFAULT_DECK, LOCKABLE_BLOCK_IDS, normalizePieceId } from "../constants/gameData";
 import { isValidSpecialPiece } from "./specials";
 import type { PieceTemplate } from "../types";
 
@@ -10,12 +10,36 @@ const BASE_LOADOUT_KEY = "block-blast-base-loadout";
 const UNLOCKED_KEY = "block-blast-unlocked-blocks";
 
 export const MAX_STASH = 24;
-export const MAX_LOADOUT = 3;
-export const MAX_BASE_DECK = 20;
+export const MAX_LOADOUT = 2;
+export const MAX_BASE_DECK = 10;
 
 // Any catalog id is a valid base-deck entry; locked ones are filtered out at game start.
 const ALL_BASE_IDS = new Set([...DEFAULT_DECK, ...LOCKABLE_BLOCK_IDS]);
 const LOCKABLE_SET = new Set(LOCKABLE_BLOCK_IDS);
+
+function arraysEqual(left: string[], right: string[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+export function normalizeBaseLoadout(
+  ids: string[],
+  availableIds: string[] = [...DEFAULT_DECK, ...LOCKABLE_BLOCK_IDS]
+): string[] {
+  const available = new Set(availableIds);
+  const selected = [
+    ...new Set(
+      ids
+        .map((id) => normalizePieceId(id))
+        .filter((id): id is string => typeof id === "string" && available.has(id))
+    )
+  ].slice(0, MAX_BASE_DECK);
+  const fallback = DEFAULT_DECK.filter((id) => available.has(id) && !selected.includes(id));
+  return [...selected, ...fallback].slice(0, MAX_BASE_DECK);
+}
+
+export function baseLoadoutsEqual(left: string[], right: string[]): boolean {
+  return arraysEqual(left, right);
+}
 
 export function loadStash(): PieceTemplate[] {
   try {
@@ -55,7 +79,7 @@ export function loadLoadout(): string[] {
 
 export function saveLoadout(ids: string[]): void {
   try {
-    localStorage.setItem(LOADOUT_KEY, JSON.stringify(ids));
+    localStorage.setItem(LOADOUT_KEY, JSON.stringify(ids.slice(0, MAX_LOADOUT)));
   } catch {
     // ignore
   }
@@ -73,19 +97,21 @@ export function getLoadoutPieces(stash: PieceTemplate[], loadoutIds: string[]): 
 export function loadBaseLoadout(): string[] {
   try {
     const raw = localStorage.getItem(BASE_LOADOUT_KEY);
-    if (!raw) return [...DEFAULT_DECK];
+    if (!raw) return normalizeBaseLoadout([]);
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [...DEFAULT_DECK];
-    const ids = parsed.filter((id) => typeof id === "string" && ALL_BASE_IDS.has(id)) as string[];
-    return ids.length ? ids.slice(0, MAX_BASE_DECK) : [...DEFAULT_DECK];
+    if (!Array.isArray(parsed)) return normalizeBaseLoadout([]);
+    const ids = parsed
+      .map((id) => (typeof id === "string" ? normalizePieceId(id) : undefined))
+      .filter((id): id is string => typeof id === "string" && ALL_BASE_IDS.has(id));
+    return normalizeBaseLoadout(ids);
   } catch {
-    return [...DEFAULT_DECK];
+    return normalizeBaseLoadout([]);
   }
 }
 
 export function saveBaseLoadout(ids: string[]): void {
   try {
-    localStorage.setItem(BASE_LOADOUT_KEY, JSON.stringify(ids));
+    localStorage.setItem(BASE_LOADOUT_KEY, JSON.stringify(normalizeBaseLoadout(ids)));
   } catch {
     // ignore
   }
@@ -97,7 +123,13 @@ export function loadUnlockedBlocks(): string[] {
     const raw = localStorage.getItem(UNLOCKED_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
     if (!Array.isArray(parsed)) return [];
-    return [...new Set(parsed.filter((id) => typeof id === "string" && LOCKABLE_SET.has(id)) as string[])];
+    return [
+      ...new Set(
+        parsed
+          .map((id) => (typeof id === "string" ? normalizePieceId(id) : undefined))
+          .filter((id): id is string => typeof id === "string" && LOCKABLE_SET.has(id))
+      )
+    ];
   } catch {
     return [];
   }
@@ -112,5 +144,7 @@ export function saveUnlockedBlocks(ids: string[]): void {
 }
 
 export function addUnlockedBlock(unlocked: string[], id: string): string[] {
-  return unlocked.includes(id) ? unlocked : [...unlocked, id];
+  const normalized = normalizePieceId(id);
+  if (!normalized || !LOCKABLE_SET.has(normalized)) return unlocked;
+  return unlocked.includes(normalized) ? unlocked : [...unlocked, normalized];
 }
